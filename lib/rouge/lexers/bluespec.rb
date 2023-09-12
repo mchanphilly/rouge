@@ -53,10 +53,13 @@ module Rouge
       INT_LITERAL = /('0|'1|#{SIZED_INT_LITERAL}|#{UNSIZED_INT_LITERAL})/
 
       # REAL LITERALS
+      EXP = /(e|E)/
+      REAL_LITERAL = /(#{DEC_NUM}(\.#{DEC_DIGITS_UNDERSCORE})?#{EXP}(#{SIGN})?#{DEC_DIGITS_UNDERSCORE}|#{DEC_NUM}\.#{DEC_DIGITS_UNDERSCORE})/
 
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
-        rule(INT_LITERAL, Num)
+        rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
+        rule(INT_LITERAL, Num::Integer)
       end
 
       state :root do

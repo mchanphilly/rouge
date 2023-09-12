@@ -7,6 +7,14 @@
 12'b101010
 32'h_FF_FF_FF_FF
 
+// Real literals
+1.2
+0.6
+2.4E10 // exponent can be e or E
+5e-3
+325.761_452_e-10 // underscores are ignored
+9.2e+4
+
 interface SomeBufferInterface;
     method ActionValue#(SomeItem) remove_item;  // removes and returns item from buffer
     method Action add_item(SomeItem item);  // adds item to buffer
