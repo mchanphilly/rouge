@@ -65,12 +65,16 @@ module Rouge
 
       STRING_LITERAL = /"#{STRING_CHARACTER}*"/
 
+      # DON'T-CARE VALUES
+      DONT_CARE = /\?/  # Slightly overcaptures when we have multiple ?'s. TODO fix (low priority)
+
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
         rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(STRING_LITERAL, Str)
+        rule(DONT_CARE, Keyword::Pseudo)
       end
 
       state :root do
