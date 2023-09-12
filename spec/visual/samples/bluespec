@@ -35,6 +35,7 @@ interface SomeBufferInterface;
     method Action add_item(SomeItem item);  // adds item to buffer
 endinterface
 
+(* synthesize *)
 module mkSomeBuffer(SomeBufferInterface);
     Counter counter <- mkCounter;  // doesn't necessarily need to be named counter
     Reg#(Bit#(5)) raw_counter <- mkReg;
