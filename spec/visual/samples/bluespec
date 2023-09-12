@@ -1,0 +1,46 @@
+// Integer literals
+125
+-16
+'h48454a
+32'h48454a
+8'o255
+12'b101010
+32'h_FF_FF_FF_FF
+
+interface SomeBufferInterface;
+    method ActionValue#(SomeItem) remove_item;  // removes and returns item from buffer
+    method Action add_item(SomeItem item);  // adds item to buffer
+endinterface
+
+module mkSomeBuffer(SomeBufferInterface);
+    Counter counter <- mkCounter;  // doesn't necessarily need to be named counter
+    Reg#(Bit#(5)) raw_counter <- mkReg;
+    
+    function Action do_thing(Bit#(32) thing_input);
+        action
+            $display("Hex representation: %x", thing_input);
+
+            if (thing_input == 16) begin
+                $display("Halfway there!");
+            end
+        endaction
+    endfunction
+
+    // etc. other state
+    rule tick;
+        counter.incr;
+        raw_counter <= 0;
+    endrule
+
+    rule check_raw if (raw_counter == !0);
+        $display("Something is wrong");
+        $finish
+    endrule
+
+    method ActionValue#(SomeItem) remove_item if (counter.value != 0);
+        let item <- some_removal_action;
+        counter.decr;
+        return item;
+    endmethod
+    // etc. other methods/rules
+endmodule
