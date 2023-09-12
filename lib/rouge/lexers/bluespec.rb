@@ -45,21 +45,32 @@ module Rouge
       BASE_HEX_LITERAL = /('h|'H)#{HEX_DIGITS_UNDERSCORE}/
       BASE_OCT_LITERAL = /('o|'O)#{OCT_DIGITS_UNDERSCORE}/
       BASE_BIN_LITERAL = /('b|'B)#{BIN_DIGITS_UNDERSCORE}/
-      BASE_LITERAL = /(#{BASE_DEC_LITERAL}|#{BASE_HEX_LITERAL}|#{BASE_OCT_LITERAL}|#{BASE_BIN_LITERAL})/
+
+      # Non-capturing group (?:) is supposed to be better for performance, I hear.
+      BASE_LITERAL = /(?:#{BASE_DEC_LITERAL}|#{BASE_HEX_LITERAL}|#{BASE_OCT_LITERAL}|#{BASE_BIN_LITERAL})/
 
       UNSIZED_INT_LITERAL = /#{SIGN}?(#{BASE_LITERAL}|#{DEC_NUM})/
       SIZED_INT_LITERAL = /#{BIT_WIDTH}#{BASE_LITERAL}/
 
-      INT_LITERAL = /('0|'1|#{SIZED_INT_LITERAL}|#{UNSIZED_INT_LITERAL})/
+      INT_LITERAL = /(?:'0|'1|#{SIZED_INT_LITERAL}|#{UNSIZED_INT_LITERAL})/
 
       # REAL LITERALS
       EXP = /(e|E)/
-      REAL_LITERAL = /(#{DEC_NUM}(\.#{DEC_DIGITS_UNDERSCORE})?#{EXP}(#{SIGN})?#{DEC_DIGITS_UNDERSCORE}|#{DEC_NUM}\.#{DEC_DIGITS_UNDERSCORE})/
+      REAL_LITERAL = /(?:#{DEC_NUM}(\.#{DEC_DIGITS_UNDERSCORE})?#{EXP}(#{SIGN})?#{DEC_DIGITS_UNDERSCORE}|#{DEC_NUM}\.#{DEC_DIGITS_UNDERSCORE})/
+
+      # STRING LITERALS (unclear if over-capturing per manual)
+      STRING_CHARACTER = /[^\n]/  # Manual underspecifies what a "string character" is.
+      # ESCAPED_CHAR = /\\[ntvfa"\\]/  # TODO: color escaped characters differently.
+      # \OOO and \xHH:  Manual is unclear what it means by "exactly 3 octal digits"
+
+      STRING_LITERAL = /"#{STRING_CHARACTER}*"/
 
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
         rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
+        # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
+        rule(STRING_LITERAL, Str)
       end
 
       state :root do

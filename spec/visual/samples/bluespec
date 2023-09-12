@@ -15,6 +15,11 @@
 325.761_452_e-10 // underscores are ignored
 9.2e+4
 
+// String literals
+String easy_string = "abcd"
+String string_with_escapes = "a\nb\nc"; // TODO: Recognize escaped characters separately.
+// String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
+
 interface SomeBufferInterface;
     method ActionValue#(SomeItem) remove_item;  // removes and returns item from buffer
     method Action add_item(SomeItem item);  // adds item to buffer
