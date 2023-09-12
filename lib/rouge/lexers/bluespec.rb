@@ -386,6 +386,9 @@ module Rouge
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
+      # Operators
+      OPERATORS = /[=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
+
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
         # Comment-like things
@@ -399,25 +402,28 @@ module Rouge
         rule(DECLARATION, Keyword::Declaration)  # TODO: could further split up semantically.
         rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         
-        # Punctuation
-        rule(PUNCTUATION, Punctuation)
-
-        # Legacy keywords from SV
-        rule(SV_KEYWORDS, Keyword::Reserved)
-
+        # Literals
         rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(STRING_LITERAL, Str)
+
+        # Punctuation
+        rule(OPERATORS, Operator)
+        rule(PUNCTUATION, Punctuation)
+
+        # Legacy keywords from SV
+        rule(SV_KEYWORDS, Keyword::Reserved)
         rule(DONT_CARE, Keyword::Pseudo)
       end
 
       state :root do
-        mixin :simple_tokens
+        mixin :simple_tokens  # Mostly keywords
         
         rule(METHOD_CALL, Name::Property)
 
         # To catch everything else
+        
         rule(LOWER_IDENTIFIER, Name::Variable)  # Lazy
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
         rule(WHITE_SPACE, Text::Whitespace)
