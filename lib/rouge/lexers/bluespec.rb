@@ -15,7 +15,7 @@ module Rouge
 
       # INTEGER LITERALS
       IDENTIFIER_TAIL = /[A-Za-z0-9$_]*\b/
-      UPPER_IDENTIFIER = /\b[A-Z]#{IDENTIFIER_TAIL}/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
+      UPPER_IDENTIFIER = /\b[A-Z]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
       LOWER_IDENTIFIER = /\b[a-z]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\b[$]#{IDENTIFIER_TAIL}/  # system tasks and functions
       HIDDEN_IDENTIFIER = /\b[_]#{IDENTIFIER_TAIL}/  # 
@@ -90,15 +90,16 @@ module Rouge
       end
       DECLARATION = /\b(?:#{declarations.join('|')})\b/
 
-      # def self.reserved
+      PUNCTUATION = /(?:[;\(\)]|begin|end)/
 
-      # end
+      # "PROPERTIES" or method calls
+      METHOD_CALL = /\.#{LOWER_IDENTIFIER}\b/
 
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
         rule(COMMENT, Comment)
         rule(DECLARATION, Keyword::Declaration)  # TODO: could further split up semantically.
-
+        rule(PUNCTUATION, Punctuation)
         # The rule should probably look more like this, but I'm not sure how to do it, and nobody else seems to do it.
         # rule /\w+/ do |m|
         #   if (self.class.declarations.include?(m[0]))
@@ -113,13 +114,18 @@ module Rouge
         rule(DONT_CARE, Keyword::Pseudo)
         rule(LAZY_DIRECTIVE, Comment::Preproc)
 
-        rule(LOWER_IDENTIFIER, Name::Variable)  # Lazy
-        rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
-        rule(WHITE_SPACE, Text::Whitespace)
+        
       end
 
       state :root do
         mixin :simple_tokens
+
+        rule(METHOD_CALL, Name::Property)
+        
+        # To catch everything else
+        rule(LOWER_IDENTIFIER, Name::Variable)  # Lazy
+        rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
+        rule(WHITE_SPACE, Text::Whitespace)
       end
 
     end
