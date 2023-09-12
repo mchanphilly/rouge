@@ -11,17 +11,6 @@ module Rouge
       
       # no BSV mimetype at time of writing
 
-      def self.keywords
-        @keywords ||= super + Set.new(%w(
-          rule endrule
-          method endmethod
-          action endaction
-
-          let
-        ))
-      end
-
-
       # All these rules translated from BNF in the BSV language reference guide
 
       # INTEGER LITERALS
@@ -74,14 +63,59 @@ module Rouge
       # Other keywords too; I'm just doing a blanket backtick check.
       # Also TODO: conditional compilation
 
+      # KEYWORD PROCESSING (TODO: not very performant, but it's what I see other lexers (e.g. Ruby, Go) doing)
+
+
+      # COMMENTS AND WHITESPACE
+      LINE_COMMENT = /\/\/(?:(?!\n).)*/
+      COMMENT = /#{LINE_COMMENT}/
+      WHITE_SPACE = /\s+/
+
+      # KEYWORDS
+      def self.declarations  # I treat these differently because they behave like brackets.
+        @declarations ||= Set.new(%w(
+          action endaction
+          actionvalue endactionvalue
+          case endcase
+          function endfunction
+          instance endinstance
+          interface endinterface
+          method endmethod
+          module endmodule
+          package endpackage
+          rule endrule
+          rules endrules
+          typeclass endtypeclass
+        ))
+      end
+      DECLARATION = /\b(?:#{declarations.join('|')})\b/
+
+      # def self.reserved
+
+      # end
+
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
+        rule(COMMENT, Comment)
+        rule(DECLARATION, Keyword::Declaration)  # TODO: could further split up semantically.
+
+        # The rule should probably look more like this, but I'm not sure how to do it, and nobody else seems to do it.
+        # rule /\w+/ do |m|
+        #   if (self.class.declarations.include?(m[0]))
+        #     token Keyword::Declaration
+        #   end
+        # end
+
         rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(STRING_LITERAL, Str)
         rule(DONT_CARE, Keyword::Pseudo)
         rule(LAZY_DIRECTIVE, Comment::Preproc)
+
+        rule(LOWER_IDENTIFIER, Name::Variable)  # Lazy
+        rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
+        rule(WHITE_SPACE, Text::Whitespace)
       end
 
       state :root do
