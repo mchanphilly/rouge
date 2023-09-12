@@ -20,12 +20,15 @@ String easy_string = "abcd"
 String string_with_escapes = "a\nb\nc"; // TODO: Recognize escaped characters separately.
 // String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
 
+// Don't care values
 module mkExample (Empty);
     Reg#(Bit#(8)) r <- mkReg(?); // don’t-care is used for the
         rule every; // reset value of the Reg
             $display("value is %h", r); // the value of r is displayed
         endrule
 endmodule
+
+`define example_macro Reg#(Bit#(8))
 
 interface SomeBufferInterface;
     method ActionValue#(SomeItem) remove_item;  // removes and returns item from buffer

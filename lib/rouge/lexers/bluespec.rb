@@ -68,6 +68,12 @@ module Rouge
       # DON'T-CARE VALUES
       DONT_CARE = /\?/  # Slightly overcaptures when we have multiple ?'s. TODO fix (low priority)
 
+      # COMPILER DIRECTIVES (TODO not fully supported; just colors full line)
+      LAZY_DIRECTIVE = /\`.*\n/
+      # DEFINE_DIRECTIVE = /\`define #{LOWER_IDENTIFIER} .*\n/  # Manual uses a curly apostrophe, but compiler uses a backtick.
+      # Other keywords too; I'm just doing a blanket backtick check.
+      # Also TODO: conditional compilation
+
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
         rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
@@ -75,6 +81,7 @@ module Rouge
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(STRING_LITERAL, Str)
         rule(DONT_CARE, Keyword::Pseudo)
+        rule(LAZY_DIRECTIVE, Comment::Preproc)
       end
 
       state :root do
