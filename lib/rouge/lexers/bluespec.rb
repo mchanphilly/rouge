@@ -72,6 +72,7 @@ module Rouge
       # KEYWORD PROCESSING (TODO: not very performant, but it's what I see other lexers (e.g. Ruby, Go) doing)
 
       # COMMENTS AND WHITESPACE
+      # TODO: highlight TODO, NOTE, or other keywords of note inside of comments.
       LINE_COMMENT = /\/\/(?:(?!\n).)*/
       COMMENT = /#{LINE_COMMENT}/
       WHITE_SPACE = /\s+/
@@ -175,8 +176,12 @@ module Rouge
 
       PUNCTUATION = /(?:[.,;#]|begin|end)/  # '#' should really go with types TODO
 
-      # "ATTRIBUTES" or method calls
-      METHOD_CALL = /(?:\.)#{LOWER_IDENTIFIER}\b/
+      # Things that follow .  (method calls and match unpacking)
+      # e.g., match Status {someIndex: .someIndex} = counter.get_status;
+      #                                ^^^^^^^^^^
+      MATCH_UNPACK= /\s\.#{LOWER_IDENTIFIER}/
+      # TODO check if whitespace actually breaks method calls; if not, then we need to find a different rule. 
+      METHOD_CALL = /\.#{LOWER_IDENTIFIER}/
       
       # An action function can stand alone.
       # We need to match the following:
@@ -257,10 +262,11 @@ module Rouge
 
         # Custom 
         rule(STANDALONE_CALL, Name::Attribute)
+        rule(MATCH_UNPACK, Name::Variable)
         rule(METHOD_CALL, Name::Attribute)
         
         # To catch everything else
-        rule(LOWER_IDENTIFIER, Name)
+        rule(LOWER_IDENTIFIER, Name::Variable)
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
         rule(WHITE_SPACE, Text::Whitespace)
 
