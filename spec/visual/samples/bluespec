@@ -20,6 +20,17 @@ String easy_string = "abcd"
 String string_with_escapes = "a\nb\nc"; // TODO: Recognize escaped characters separately.
 // String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
 
+typedef enum {
+    Good,
+    Bad,
+    Okay
+} Status deriving (Eq);
+
+typedef struct {
+    Bit#(5) someIndex;
+    Bool someBool;
+} SomeItem deriving (Bits, Eq, FShow);
+
 // Don't care values
 module mkExample (Empty);
     Reg#(Bit#(8)) r <- mkReg(?); // don’t-care is used for the

@@ -17,13 +17,14 @@ module Rouge
       # correct Bluespec, but we won't catch some technically improper BSV, like calls that 
       # look like system calls (e.g., $finish) but with improper keywords (e.g., $gibberish)
 
-      # INTEGER LITERALS
+      # IDENTIFIERS
       IDENTIFIER_TAIL = /[A-Za-z0-9$_]*\b/
-      UPPER_IDENTIFIER = /[A-Z]#{IDENTIFIER_TAIL}/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
+      UPPER_IDENTIFIER = /[A-Z]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
       LOWER_IDENTIFIER = /[a-z]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
       HIDDEN_IDENTIFIER = /_#{IDENTIFIER_TAIL}/  # TODO unused
       
+      # INTEGER LITERALS
       DEC_DIGITS = /[0-9]+/  # { 0...9 } in BNF
       DEC_DIGITS_UNDERSCORE = /[0-9_]+/
       HEX_DIGITS_UNDERSCORE = /[0-9a-fA-F_]+/
@@ -32,7 +33,7 @@ module Rouge
       
       SIGN = /[+-]/
       BIT_WIDTH = /#{DEC_DIGITS}/  # notice no underscores (e.g. Bit#(5))
-      DEC_NUM = /#{DEC_DIGITS}#{DEC_DIGITS_UNDERSCORE}?/  # removed redundant DEC_DIGITS; hopefully actually redundant
+      DEC_NUM = /#{DEC_DIGITS}#{DEC_DIGITS_UNDERSCORE}?/
 
       BASE_DEC_LITERAL = /('d|'D)#{DEC_DIGITS_UNDERSCORE}/
       BASE_HEX_LITERAL = /('h|'H)#{HEX_DIGITS_UNDERSCORE}/
@@ -69,18 +70,13 @@ module Rouge
 
       # KEYWORD PROCESSING (TODO: not very performant, but it's what I see other lexers (e.g. Ruby, Go) doing)
 
-
       # COMMENTS AND WHITESPACE
       LINE_COMMENT = /\/\/(?:(?!\n).)*/
       COMMENT = /#{LINE_COMMENT}/
       WHITE_SPACE = /\s+/
 
-      # KEYWORDS
-      def self.declarations  # I treat these differently because they behave like brackets.
-        @declarations ||= Set.new(%w(
-          action endaction
-          actionvalue endactionvalue
-          case endcase
+      def self.functions  # More special than declarations
+        @functions ||= Set.new(%w(
           function endfunction
           instance endinstance
           interface endinterface
@@ -90,12 +86,25 @@ module Rouge
           rule endrule
           rules endrules
           typeclass endtypeclass
-          enum
+          typedef
           struct
           tagged
           union
+          enum
+        ))
+      end
+      FUNCTIONS = /\b(?:#{functions.join('|')})\b/
+
+      # KEYWORDS
+      def self.declarations  # I treat these differently because they behave like brackets.
+        @declarations ||= Set.new(%w(
+          case endcase
           type
-          typedef
+          else
+          for
+          if
+          return
+          while
         ))
       end
       DECLARATION = /\b(?:#{declarations.join('|')})\b/
@@ -108,19 +117,17 @@ module Rouge
       
       def self.reserved
         @reserved ||= Set.new(%w(
+          action endaction
+          actionvalue endactionvalue
           ancestor
-          case
           clocked_by
           default
           default_clock
           default_reset
           dependencies
           e
-          else
           enable
           export
-          for
-          if
           ifc_inout
           import
           inout
@@ -136,27 +143,26 @@ module Rouge
           path
           port
           provisos
+          deriving
           reset_by
-          return
           same_family
           schedule
           valueOf
           valueof
           void
-          while
         ))
       end
       RESERVED = /\b(?:#{reserved.join('|')})\b/
 
       def self.default_types  # Notice 
-        @default_types ||= Set.new(%W(
-          Action
-          ActionValue  # todo add '#'
-          bit
-          let
-        ))
+        @default_types ||= Set.new([
+          "ActionValue#",  # The ordering is significant. We don't want to just capture the Action.
+          "Action",
+          "bit",
+          "let"
+        ])
       end
-      DEFAULT_TYPES = /\b(?:#{default_types.join('|')})\b/
+      DEFAULT_TYPES = /(?:#{default_types.join('|')})/
 
       def self.special_keywords
         @special_keywords ||= Set.new(%w(
@@ -378,16 +384,16 @@ module Rouge
       end
       SV_KEYWORDS = /\b(?:#{sv_keywords.join('|')})\b/  # *really* not performant TODO
 
-      PUNCTUATION = /(?:[,;\(\)#]|begin|end)/  # '#' should really go with types TODO
+      PUNCTUATION = /(?:[,;#]|begin|end)/  # '#' should really go with types TODO
 
       # "PROPERTIES" or method calls
-      METHOD_CALL = /\.#{LOWER_IDENTIFIER}\b/
+      METHOD_CALL = /(?:\.)#{LOWER_IDENTIFIER}\b/
 
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
       # Operators
-      OPERATORS = /[=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
+      OPERATORS = /[=\+\-\!~&|\/%<>\(\)\{\}]+/  # TODO change to actual operators and not lazy
 
       # rule structure based on the go.rb lexer. It seemed very clean.
       state :simple_tokens do
@@ -399,34 +405,37 @@ module Rouge
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
         rule(DEFAULT_TYPES, Str)
-        rule(DECLARATION, Keyword::Declaration)  # TODO: could further split up semantically.
+        rule(DECLARATION, Keyword)  # TODO: could further split up semantically.
         rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         
         # Literals
-        rule(REAL_LITERAL, Num::Other)  # No more specific token available (has to be before)
+        rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(STRING_LITERAL, Str)
 
         # Punctuation
         rule(OPERATORS, Operator)
-        rule(PUNCTUATION, Punctuation)
 
         # Legacy keywords from SV
-        rule(SV_KEYWORDS, Keyword::Reserved)
         rule(DONT_CARE, Keyword::Pseudo)
       end
 
       state :root do
         mixin :simple_tokens  # Mostly keywords
         
-        rule(METHOD_CALL, Name::Property)
+        rule(METHOD_CALL, Name::Attribute)
+        rule(FUNCTIONS, Name::Function)
 
         # To catch everything else
         
-        rule(LOWER_IDENTIFIER, Name::Variable)  # Lazy
+        rule(LOWER_IDENTIFIER, Text)
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
         rule(WHITE_SPACE, Text::Whitespace)
+
+        # For last because I don't want it overriding the special rules.
+        rule(PUNCTUATION, Punctuation)
+        rule(SV_KEYWORDS, Keyword::Reserved)
       end
 
     end
