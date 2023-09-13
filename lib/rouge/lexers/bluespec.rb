@@ -192,6 +192,21 @@ module Rouge
       ACTIONVALUE_ARROW = /<-/
       OPERATORS = /[\:=\+\-\!~&|\/%<>\(\)\{\}\[\]]+/  # TODO change to actual operators and not lazy
 
+
+      # ENUM
+      # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
+      # them in lexing. We need to be more discerning in the rules we use.
+      
+      # Looking at a snippet of Bluespec, we can see that generally (I don't know about strict
+      # adherance to the grammar):
+
+      # Enumeration (members) are (and interfaces aren't):
+      # - in comma separated curly bracket lists {One, Two, Three} when defined
+      # - used with operators; e.g. comparison operator
+      # - in case statements
+
+      CASE_ENUM = /#{UPPER_IDENTIFIER}(?=:)/
+
       # rule structure based on the go.rb lexer. It seemed very clean.
 
       state :simple_tokens do
@@ -202,7 +217,6 @@ module Rouge
 
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
-        rule(CONTROL, Keyword)  # TODO: could further split up semantically.
         
         # Literals
         rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
@@ -223,6 +237,9 @@ module Rouge
         mixin :simple_tokens  # Mostly keywords
 
         # Declarations
+        rule(%r/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
+        rule(%r/case/, Keyword::Reserved, :case)
+
         rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
         rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
 
@@ -234,6 +251,7 @@ module Rouge
           token Punctuation, m[3]
         end
 
+        rule(CONTROL, Keyword)  # TODO: could further split up semantically.
         rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         rule(SV_KEYWORDS, Keyword::Reserved)  # legacy words from SystemVerilog
 
@@ -280,6 +298,20 @@ module Rouge
         rule(/ #{UPPER_IDENTIFIER}/, Name::Namespace)
         rule(/::/, Punctuation)  # technically redundant if we mixin root
         rule()
+      end
+
+      # Slightly overkill, but we can imagine a design pattern where we wish to be strict about what patterns may apply.
+      # TODO add support for literal matches instead of just case matches
+      state :case do
+        rule(CASE_ENUM, Name::Constant)
+        rule(/endcase/, Keyword::Reserved, :pop!)
+        mixin :root
+      end
+
+      state :enum_declaration do
+        rule(UPPER_IDENTIFIER, Name::Constant)
+        rule(%r/}/, Punctuation, :pop!)
+        mixin :root
       end
     end
   end

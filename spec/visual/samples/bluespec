@@ -47,6 +47,7 @@ module mkSomeBuffer(SomeBufferInterface);
     Counter counter <- mkCounter;  // doesn't necessarily need to be named counter
     Reg#(Bit#(5)) raw_counter <- mkReg(0);
     Reg#(Bit#(8)) r <- mkReg(?); // don’t-care value; usually we would use mkRegU instead
+    Reg#(Status) status <- mkReg(Good);
     
     function Action do_thing(Bit#(32) thing_input);
         action
@@ -72,6 +73,22 @@ module mkSomeBuffer(SomeBufferInterface);
         counter.incr;
         do_thing(counter.value);
         raw_counter <= 0;
+        
+        if (status == Bad) status <= Good;
+
+        if (status == Okay) begin
+            status <= Good;
+        end
+
+        // For unpacking structs
+        match Status {
+            someIndex: .someIndex,
+            someBool: .someBool
+        } = counter.get_some_item;
+
+        if (counter.dump matches tagged Valid .member &&& counter.id matches tagged Valid .id) begin
+            $display("This is for conditional matching");
+        end
     endrule
 
     rule check_raw if (raw_counter == !0);
@@ -83,6 +100,15 @@ module mkSomeBuffer(SomeBufferInterface);
         let item <- some_removal_action;
         counter.decr;
         do_other_thing;
+
+        case (status)
+            Good: $display("Good!");
+            Okay: begin
+                $display("Okay");
+            end
+            Bad: $finish;
+        endcase
+
         return item;
     endmethod
     // etc. other methods/rules
