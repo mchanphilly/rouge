@@ -405,7 +405,7 @@ module Rouge
       end
       SV_KEYWORDS = /\b(?:#{sv_keywords.join('|')})\b/  # *really* not performant TODO
 
-      PUNCTUATION = /(?:[,;#]|begin|end)/  # '#' should really go with types TODO
+      PUNCTUATION = /(?:[.,;#]|begin|end)/  # '#' should really go with types TODO
 
       # "PROPERTIES" or method calls
       METHOD_CALL = /(?:\.)#{LOWER_IDENTIFIER}\b/
@@ -414,6 +414,7 @@ module Rouge
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
       # Operators
+      ACTIONVALUE_ARROW = /<-/
       OPERATORS = /[=\+\-\!~&|\/%<>\(\)\{\}]+/  # TODO change to actual operators and not lazy
 
       # rule structure based on the go.rb lexer. It seemed very clean.
@@ -435,6 +436,7 @@ module Rouge
         rule(STRING_LITERAL, Str)
 
         # Punctuation
+        rule(ACTIONVALUE_ARROW, Operator, :actionvalue)
         rule(OPERATORS, Operator)
 
         # Legacy keywords from SV
@@ -447,7 +449,6 @@ module Rouge
         mixin :simple_tokens  # Mostly keywords
         
         rule(METHOD_CALL, Name::Attribute)
-        # rule(DECLARE_KEYWORD, Name::Function)  # module, interface, function, method, rule names
 
         # Declarations
         rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared)
@@ -462,6 +463,11 @@ module Rouge
         # For last because I don't want it overriding the special rules.
         rule(PUNCTUATION, Punctuation)
         rule(SV_KEYWORDS, Keyword::Reserved)
+      end
+
+      state :actionvalue do
+        rule(/ #{LOWER_IDENTIFIER}/, Name::Attribute, :pop!)
+        mixin :root
       end
 
       state :declared do
