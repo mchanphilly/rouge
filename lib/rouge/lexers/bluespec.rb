@@ -77,29 +77,9 @@ module Rouge
 
       def self.generic_declarations
         @generic_declarations ||= Set.new(%w(
-          function
-          instance
-          interface
-          method 
-          module
-          package
-          rule 
-          rules 
-          typeclass 
-          typedef
-          struct
-          tagged
-          union
-          enum
-          endfunction
-          endinstance
-          endinterface
-          endmethod
-          endmodule
-          endpackage
-          endrule
-          endrules
-          endtypeclass
+          function instance interface method module package rule rules typeclass
+          typedef struct tagged union enum endfunction endinstance endinterface
+          endmethod endmodule endpackage endrule endrules endtypeclass
         ))
       end
 
@@ -117,15 +97,9 @@ module Rouge
       # Pretty plausible that there are more declarations to add; but these cover a very solid portion of my usage.
 
       # KEYWORDS
-      def self.control  # I treat these differently because they behave like brackets.
+      def self.control  # Mostly control; I slipped a type in there.
         @control ||= Set.new(%w(
-          case endcase
-          type
-          else
-          for
-          if
-          return
-          while
+          case endcase type else for if return while
         ))
       end
       CONTROL = /\b(?:#{control.join('|')})\b/
@@ -138,39 +112,11 @@ module Rouge
       
       def self.reserved
         @reserved ||= Set.new(%w(
-          action endaction
-          actionvalue endactionvalue
-          ancestor
-          clocked_by
-          default
-          default_clock
-          default_reset
-          dependencies
-          e
-          enable
-          export
-          ifc_inout
-          import
-          inout
-          input_clock
-          input_reset
-          let
-          match
-          matches
-          numeric
-          output_clock
-          output_reset
-          parameter
-          path
-          port
-          provisos
-          deriving
-          reset_by
-          same_family
-          schedule
-          valueOf
-          valueof
-          void
+          action endaction actionvalue endactionvalue ancestor clocked_by default
+          default_clock default_reset dependencies e enable export ifc_inout import
+          inout input_clock input_reset let match matches numeric output_clock
+          output_reset parameter path port provisos deriving reset_by same_family
+          schedule valueOf valueof void
         ))
       end
       RESERVED = /\b(?:#{reserved.join('|')})\b/
@@ -196,212 +142,33 @@ module Rouge
         ))
       end  # TODO use
 
-      def self.sv_keywords # SystemVerilog keywords for backwards compatibility
+      def self.sv_keywords # SystemVerilog keywords for backwards compatibility. Overlaps with other sets.
         @sv_keywords ||= Set.new(%w(
-          alias
-          always
-          always_comb
-          always_ff
-          always_latch
-          and
-          assert
-          assert_strobe
-          assign
-          assume
-          automatic
-          before
-          begin end
-          bind
-          bins
-          binsof
-          bit
-          break
-          buf
-          bufif0
-          bufif1
-          byte
-          case endcase
-          casex
-          casez
-          cell
-          chandle
-          class endclass
-          clocking endclocking
-          cmos
-          config endconfig
-          const
-          constraint
-          context
-          continue
-          cover
-          covergroup endgroup
-          coverpoint
-          cross
-          deassign
-          default
-          defparam
-          design
-          disable
-          dist
-          do
-          edge
-          else
-          enum
-          event
-          expect
-          export
-          extends
-          extern
-          final
-          first_match
-          for
-          force
-          foreach
-          forever
-          fork
-          forkjoin
-          function endfunction
-          generate endgenerate
-          genvar
-          highz0
-          highz1
-          if
-          iff
-          ifnone
-          ignore_bins
-          illegal_bins
-          import
-          incdir
-          include
-          initial
-          inout
-          input
-          inside
-          instance
-          int
-          integer
-          interface endinterface
-          intersect
-          join
-          join_any
-          join_none
-          large
-          liblist
-          library
-          local
-          localparam
-          logic
-          longint
-          macromodule
-          matches
-          medium
-          modport
-          module endmodule
-          nand
-          negedge
-          new
-          nmos
-          nor
-          noshowcancelled
-          not
-          notif0
-          notif1
-          null
-          or
-          output
-          package endpackage
-          packed
-          parameter
-          pmos
-          posedge
-          primitive endprimitive
-          priority
-          program endprogram
-          property endproperty
-          protected
-          pull0
-          pull1
-          pulldown
-          pullup
-          pulsestyle_onevent
-          pulsestyle_ondetect
-          pure
-          rand
-          randc
-          randcase
-          randsequence
-          rcmos
-          real
-          realtime
-          ref
-          reg
-          release
-          repeat
-          return
-          rnmos
-          rpmos
-          rtran
-          rtranif0
-          rtranif1
-          scalared
-          sequence endsequence
-          shortint
-          shortreal
-          showcancelled
-          signed
-          small
-          solve
-          specify endspecify
-          specparam
-          static
-          string
-          strong0
-          strong1
-          struct
-          super
-          supply0
-          supply1
-          table endtable
-          tagged
-          task endtask
-          this
-          throughout
-          time
-          timeprecision
-          timeunit
-          tran
-          tranif0
-          tranif1
-          tri
-          tri0
-          tri1
-          triand
-          trior
-          trireg
-          type
-          typedef
-          union
-          unique
-          unsigned
-          use
-          var
-          vectored
-          virtual
-          void
-          wait
-          wait_order
-          wand
-          weak0
-          weak1
-          while
-          wildcard
-          wire
-          with
-          within
-          wor
-          xnor
-          xor
-        ))
+          alias always always_comb always_ff always_latch and assert assert_strobe
+          assign assume automatic before begin end bind bins binsof bit break buf
+          bufif0 bufif1 byte case endcase casex casez cell chandle class endclass
+          clocking endclocking cmos config endconfig const constraint context continue
+          cover covergroup endgroup coverpoint cross deassign default defparam design
+          disable dist do edge else enum event expect export extends extern final 
+          first_match for force foreach forever fork forkjoin function endfunction
+          generate endgenerate genvar highz0 highz1 if iff ifnone ignore_bins
+          illegal_bins import incdir include initial inout input inside instance
+          int integer interface endinterface intersect join join_any join_none
+          large liblist library local localparam logic longint macromodule
+          matches medium modport module endmodule nand negedge new nmos nor
+          noshowcancelled not notif0 notif1 null or output package endpackage
+          packed parameter pmos posedge primitive endprimitive priority program
+          endprogram property endproperty protected pull0 pull1 pulldown pullup
+          pulsestyle_onevent pulsestyle_ondetect pure rand randc randcase randsequence
+          rcmos real realtime ref reg release repeat return rnmos rpmos rtran
+          rtranif0 rtranif1 scalared sequence endsequence shortint shortreal
+          showcancelled signed small solve specify endspecify specparam static
+          string strong0 strong1 struct super supply0 supply1 table endtable
+          tagged task endtask this throughout time timeprecision timeunit tran
+          tranif0 tranif1 tri tri0 tri1 triand trior trireg type typedef
+          union unique unsigned use var vectored virtual void wait wait_order
+          wand weak0 weak1 while wildcard wire with within wor xnor xor
+      ))
       end
       SV_KEYWORDS = /\b(?:#{sv_keywords.join('|')})\b/  # *really* not performant TODO
 
@@ -425,6 +192,7 @@ module Rouge
       OPERATORS = /[=\+\-\!~&|\/%<>\(\)\{\}]+/  # TODO change to actual operators and not lazy
 
       # rule structure based on the go.rb lexer. It seemed very clean.
+
       state :simple_tokens do
         # Comment-like things
         rule(COMMENT, Comment)
@@ -458,20 +226,20 @@ module Rouge
         rule(METHOD_CALL, Name::Attribute)
 
         # Declarations
-        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared)
+        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
         rule(GENERIC_DECLARATIONS, Keyword::Declaration)
 
         rule(STANDALONE_CALL, Name::Attribute)
 
-        # To catch everything else
+        rule(SV_KEYWORDS, Keyword::Reserved)
         
+        # To catch everything else
         rule(LOWER_IDENTIFIER, Name)
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
         rule(WHITE_SPACE, Text::Whitespace)
 
         # For last because I don't want it overriding the special rules.
         rule(PUNCTUATION, Punctuation)
-        rule(SV_KEYWORDS, Keyword::Reserved)
       end
 
       state :actionvalue do
