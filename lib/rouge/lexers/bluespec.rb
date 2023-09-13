@@ -18,7 +18,7 @@ module Rouge
       # look like system calls (e.g., $finish) but with improper keywords (e.g., $gibberish)
 
       # IDENTIFIERS
-      IDENTIFIER_TAIL = /[A-Za-z0-9$_]*\b/
+      IDENTIFIER_TAIL = /[A-Za-z0-9$_]*/
       UPPER_IDENTIFIER = /[A-Z]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
       LOWER_IDENTIFIER = /[a-z]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
@@ -75,29 +75,50 @@ module Rouge
       COMMENT = /#{LINE_COMMENT}/
       WHITE_SPACE = /\s+/
 
-      def self.functions  # More special than declarations
-        @functions ||= Set.new(%w(
-          function endfunction
-          instance endinstance
-          interface endinterface
-          method endmethod
-          module endmodule
-          package endpackage
-          rule endrule
-          rules endrules
-          typeclass endtypeclass
+      def self.generic_declarations
+        @generic_declarations ||= Set.new(%w(
+          function
+          instance
+          interface
+          method 
+          module
+          package
+          rule 
+          rules 
+          typeclass 
           typedef
           struct
           tagged
           union
           enum
+          endfunction
+          endinstance
+          endinterface
+          endmethod
+          endmodule
+          endpackage
+          endrule
+          endrules
+          endtypeclass
         ))
       end
-      FUNCTIONS = /\b(?:#{functions.join('|')})\b/
+
+      GENERIC_DECLARATIONS = /\b(?:#{generic_declarations.join('|')})\b/
+      
+      # TODO make this actually more regular instead of ad hoc
+      # declared interface, module, function, method, rule names
+      # I split the declarations into two types:
+      #   1-degree named declarations (module/rule identifier)
+      #   2-degree named declarations (second) (function/method RETURN_VALUE identifier)
+      # both mixin the :root to cover up the rest of the rules
+      # After writing out each of the rules, I realized you can combine the rules because
+      # we can just pop after the first identifier.
+      SPECIAL_DECLARATIONS = /(module|rule|function|method)/
+      # Pretty plausible that there are more declarations to add; but these cover a very solid portion of my usage.
 
       # KEYWORDS
-      def self.declarations  # I treat these differently because they behave like brackets.
-        @declarations ||= Set.new(%w(
+      def self.control  # I treat these differently because they behave like brackets.
+        @control ||= Set.new(%w(
           case endcase
           type
           else
@@ -107,10 +128,10 @@ module Rouge
           while
         ))
       end
-      DECLARATION = /\b(?:#{declarations.join('|')})\b/
+      CONTROL = /\b(?:#{control.join('|')})\b/
       # The rule should probably look more like this, but I'm not sure how to do it, and nobody else seems to do it.
       # rule /\w+/ do |m|
-      #   if (self.class.declarations.include?(m[0]))
+      #   if (self.class.control.include?(m[0]))
       #     token Keyword::Declaration
       #   end
       # end
@@ -404,8 +425,7 @@ module Rouge
 
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
-        rule(DEFAULT_TYPES, Str)
-        rule(DECLARATION, Keyword)  # TODO: could further split up semantically.
+        rule(CONTROL, Keyword)  # TODO: could further split up semantically.
         rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         
         # Literals
@@ -422,14 +442,20 @@ module Rouge
       end
 
       state :root do
+        rule(DEFAULT_TYPES, Keyword)
+
         mixin :simple_tokens  # Mostly keywords
         
         rule(METHOD_CALL, Name::Attribute)
-        rule(FUNCTIONS, Name::Function)
+        # rule(DECLARE_KEYWORD, Name::Function)  # module, interface, function, method, rule names
+
+        # Declarations
+        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared)
+        rule(GENERIC_DECLARATIONS, Keyword::Declaration)
 
         # To catch everything else
         
-        rule(LOWER_IDENTIFIER, Text)
+        rule(LOWER_IDENTIFIER, Name)
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
         rule(WHITE_SPACE, Text::Whitespace)
 
@@ -438,6 +464,10 @@ module Rouge
         rule(SV_KEYWORDS, Keyword::Reserved)
       end
 
+      state :declared do
+        rule(/ #{LOWER_IDENTIFIER}/, Name::Function, :pop!)
+        mixin :root
+      end
     end
   end
 end
