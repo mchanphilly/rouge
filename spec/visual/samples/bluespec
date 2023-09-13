@@ -44,7 +44,7 @@ endinterface
 module mkSomeBuffer(SomeBufferInterface);
     Counter counter <- mkCounter;  // doesn't necessarily need to be named counter
     Reg#(Bit#(5)) raw_counter <- mkReg(0);
-    Reg#(Bit#(8)) r <- mkReg(?); // don’t-care value
+    Reg#(Bit#(8)) r <- mkReg(?); // don’t-care value; usually we would use mkRegU instead
     
     function Action do_thing(Bit#(32) thing_input);
         action
@@ -56,9 +56,16 @@ module mkSomeBuffer(SomeBufferInterface);
         endaction
     endfunction
 
+    function Action do_other_thing;
+        action
+            $display("Smoke test");
+        endaction
+    endfunction
+
     // etc. other state
     rule tick;
         counter.incr;
+        do_thing(counter.value);
         raw_counter <= 0;
     endrule
 
@@ -70,6 +77,7 @@ module mkSomeBuffer(SomeBufferInterface);
     method ActionValue#(SomeItem) remove_item if (counter.value != 0);
         let item <- some_removal_action;
         counter.decr;
+        do_other_thing;
         return item;
     endmethod
     // etc. other methods/rules

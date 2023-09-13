@@ -407,8 +407,15 @@ module Rouge
 
       PUNCTUATION = /(?:[.,;#]|begin|end)/  # '#' should really go with types TODO
 
-      # "PROPERTIES" or method calls
+      # "ATTRIBUTES" or method calls
       METHOD_CALL = /(?:\.)#{LOWER_IDENTIFIER}\b/
+      
+      # An action function can stand alone.
+      # We need to match the following:
+      #   - do_thing;
+      #   - do_thing(blah, blah, blah);
+      # This regex checks that we have a newline, whitespace, and an identifier. We lookahead to check for ( or ;
+      STANDALONE_CALL = /(?m)^\n\s*#{LOWER_IDENTIFIER}(?=[\(;])/
 
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
@@ -422,7 +429,7 @@ module Rouge
         # Comment-like things
         rule(COMMENT, Comment)
         rule(LAZY_DIRECTIVE, Comment::Preproc)  # `define, but with all `identifier
-        rule(COMPILER_DIRECTIVE, Comment::Preproc)  # e.g., (* synthesize *)
+        rule(COMPILER_DIRECTIVE, Name::Function::Magic)  # e.g., (* synthesize *)
 
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
@@ -453,6 +460,8 @@ module Rouge
         # Declarations
         rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared)
         rule(GENERIC_DECLARATIONS, Keyword::Declaration)
+
+        rule(STANDALONE_CALL, Name::Attribute)
 
         # To catch everything else
         
