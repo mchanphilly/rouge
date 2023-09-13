@@ -190,7 +190,7 @@ module Rouge
 
       # Operators
       ACTIONVALUE_ARROW = /<-/
-      OPERATORS = /[=\+\-\!~&|\/%<>\(\)\{\}]+/  # TODO change to actual operators and not lazy
+      OPERATORS = /[\:=\+\-\!~&|\/%<>\(\)\{\}\[\]]+/  # TODO change to actual operators and not lazy
 
       # rule structure based on the go.rb lexer. It seemed very clean.
 
@@ -203,7 +203,6 @@ module Rouge
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
         rule(CONTROL, Keyword)  # TODO: could further split up semantically.
-        rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         
         # Literals
         rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
@@ -215,7 +214,6 @@ module Rouge
         rule(ACTIONVALUE_ARROW, Operator, :actionvalue)
         rule(OPERATORS, Operator)
 
-        # Legacy keywords from SV
         rule(DONT_CARE, Keyword::Pseudo)
       end
 
@@ -223,16 +221,25 @@ module Rouge
         rule(DEFAULT_TYPES, Keyword)
 
         mixin :simple_tokens  # Mostly keywords
-        
-        rule(METHOD_CALL, Name::Attribute)
 
         # Declarations
         rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
-        rule(GENERIC_DECLARATIONS, Keyword::Declaration)
+        rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
 
+        # e.g.,
+        # import FIFO::*;
+        rule %r/(import\s+)(#{UPPER_IDENTIFIER}\s*)(::\s*\*+)/ do |m|  # Limited support for imports like FIFO#; TODO add support for RTL/IP imports
+          token Keyword::Namespace, m[1]
+          token Name::Namespace, m[2]
+          token Punctuation, m[3]
+        end
+
+        rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
+        rule(SV_KEYWORDS, Keyword::Reserved)  # legacy words from SystemVerilog
+
+        # Custom 
         rule(STANDALONE_CALL, Name::Attribute)
-
-        rule(SV_KEYWORDS, Keyword::Reserved)
+        rule(METHOD_CALL, Name::Attribute)
         
         # To catch everything else
         rule(LOWER_IDENTIFIER, Name)
@@ -243,21 +250,36 @@ module Rouge
         rule(PUNCTUATION, Punctuation)
       end
 
+      # e.g., Reg#(Bit#(2)) <- mkReg(0)
+      #                        ^^^^^
       state :actionvalue do
         rule(/ #{LOWER_IDENTIFIER}/, Name::Attribute, :pop!)
         mixin :root
       end
 
+      # e.g., module mkExample(Example);
+      #              ^^^^^^^^^
+      # e.g., method ActionValue#(Bit#(4)) do_thing(Bit#(4) input);
+      #                                    ^^^^^^^^
       state :declared do
         rule(/ #{LOWER_IDENTIFIER}/, Name::Function, :pop!)
         mixin :root
       end
 
+      # e.g., "Below is the format:\n%0x %b"
+      #                            ^^*** **
+      # where ^ is ESCAPED_CHAR and * is FORMAT_SPECIFIER
       state :string do
         rule(ESCAPED_CHAR, Str::Escape)
         rule(FORMAT_SPECIFIER, Str::Escape)
         rule(/"/, Str::Delimiter, :pop!)  # Needs to precede STRING_CHARACTER because it will capture everything else (by default)
         rule(/#{STRING_CHARACTER}/, Str)
+      end
+
+      state :namespace do
+        rule(/ #{UPPER_IDENTIFIER}/, Name::Namespace)
+        rule(/::/, Punctuation)  # technically redundant if we mixin root
+        rule()
       end
     end
   end

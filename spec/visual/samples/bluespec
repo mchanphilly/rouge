@@ -1,3 +1,5 @@
+import FIFO::*;
+
 // Integer literals
 125
 -16
@@ -49,6 +51,7 @@ module mkSomeBuffer(SomeBufferInterface);
     function Action do_thing(Bit#(32) thing_input);
         action
             $display("Hex representation: %x", thing_input);
+            $display("First half: %3x", thing_input[31:16]);
 
             if (thing_input == 16) begin
                 $display("Halfway there!");
@@ -61,6 +64,8 @@ module mkSomeBuffer(SomeBufferInterface);
             $display("Smoke test");
         endaction
     endfunction
+
+    (* conflict_free = "tick, check_raw" *)
 
     // etc. other state
     rule tick;
