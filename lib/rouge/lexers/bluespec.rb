@@ -54,10 +54,11 @@ module Rouge
 
       # STRING LITERALS (unclear if over-capturing per manual)
       STRING_CHARACTER = /[^\n]/  # Manual underspecifies what a "string character" is.
-      # ESCAPED_CHAR = /\\[ntvfa"\\]/  # TODO: color escaped characters differently.
+      ESCAPED_CHAR = /\\[ntvfa"\\]/  # TODO: color escaped characters differently.
+      FORMAT_SPECIFIER = /%#{DEC_DIGITS}?[dbohcstmx]/
       # \OOO and \xHH:  Manual is unclear what it means by "exactly 3 octal digits"
 
-      STRING_LITERAL = /"#{STRING_CHARACTER}*"/
+      # STRING_LITERAL = /"#{STRING_CHARACTER}*"/
 
       # DON'T-CARE VALUES
       DONT_CARE = /\?/  # Slightly overcaptures when we have multiple ?'s. TODO fix (low priority)
@@ -208,7 +209,7 @@ module Rouge
         rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
         rule(INT_LITERAL, Num::Integer)
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
-        rule(STRING_LITERAL, Str)
+        rule(/"/, Str::Delimiter, :string)
 
         # Punctuation
         rule(ACTIONVALUE_ARROW, Operator, :actionvalue)
@@ -250,6 +251,13 @@ module Rouge
       state :declared do
         rule(/ #{LOWER_IDENTIFIER}/, Name::Function, :pop!)
         mixin :root
+      end
+
+      state :string do
+        rule(ESCAPED_CHAR, Str::Escape)
+        rule(FORMAT_SPECIFIER, Str::Escape)
+        rule(/"/, Str::Delimiter, :pop!)  # Needs to precede STRING_CHARACTER because it will capture everything else (by default)
+        rule(/#{STRING_CHARACTER}/, Str)
       end
     end
   end
