@@ -1,21 +1,21 @@
 import FIFO::*;
 
 // Integer literals
-125
--16
-'h48454a
-32'h48454a
-8'o255
-12'b101010
-32'h_FF_FF_FF_FF
+Integer i1 = 125;
+Integer i2 = -16;
+Integer i3 = 'h48454a;
+Integer i4 = 32'h48454a;
+Integer i5 = 8'o255;
+Integer i6 = 12'b101010;
+Integer i7 = 32'h_FF_FF_FF_FF;
 
 // Real literals
-1.2
-0.6
-2.4E10 // exponent can be e or E
-5e-3
-325.761_452_e-10 // underscores are ignored
-9.2e+4
+Real r1 = 1.2;
+Real r2 = 0.6;
+Real r3 = 2.4E10; // exponent can be e or E
+Real r4 = 5e-3;
+Real r5 = 325.761_452_e-10; // underscores are ignored
+Real r6 = 9.2e+4;
 
 // String literals
 String easy_string = "abcd"
@@ -76,7 +76,7 @@ module mkSomeBuffer(SomeBufferInterface);
 
     rule check_raw if (raw_counter == !0);
         $display("Something is wrong");
-        $finish
+        $finish;
     endrule
 
     method ActionValue#(SomeItem) remove_item if (counter.value != 0);
