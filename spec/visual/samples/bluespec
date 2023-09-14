@@ -60,6 +60,10 @@ module mkSomeBuffer(SomeBufferInterface);
         endaction
     endfunction
 
+    function Action update_status(Status new_status, Status another_enum);
+            noAction;  // toy example; looking for when we use this.
+    endfunction
+
     function Action do_other_thing;
         action
             $display("Smoke test");
@@ -74,7 +78,7 @@ module mkSomeBuffer(SomeBufferInterface);
         do_thing(counter.value);
         raw_counter <= 0;
         
-        if (status == Bad) status <= Good;
+        if (status == Bad && counter.status == Bad) status <= Good;
 
         if (status == Okay) begin
             status <= Good;
@@ -82,7 +86,7 @@ module mkSomeBuffer(SomeBufferInterface);
 
         // For unpacking structs
         match Status {
-            someIndex: .someIndex,
+            someIndex: .someIndex,  // TODO the `.someIndex` should render like variables, not calls.
             someBool: .someBool
         } = counter.get_some_item;
 
@@ -100,6 +104,9 @@ module mkSomeBuffer(SomeBufferInterface);
         let item <- some_removal_action;
         counter.decr;
         do_other_thing;
+
+        // (enum instances as arguments should render like enums, not interface names)
+        update_status(Good, Bad);  // TODO Not fully implemented
 
         case (status)
             Good: $display("Good!");

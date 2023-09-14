@@ -189,6 +189,7 @@ module Rouge
       #   - do_thing(blah, blah, blah);
       # This regex checks that we have a newline, whitespace, and an identifier. We lookahead to check for ( or ;
       STANDALONE_CALL = /(?m)^\n\s*#{LOWER_IDENTIFIER}(?=[\(;])/
+      
 
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
@@ -250,6 +251,7 @@ module Rouge
         rule(%r/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
         rule(%r/case/, Keyword::Reserved, :case)
 
+        # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
         rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
         rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
 
@@ -266,8 +268,8 @@ module Rouge
         rule(SV_KEYWORDS, Keyword::Reserved)  # legacy words from SystemVerilog
 
         # Custom 
-        rule(STANDALONE_CALL, Name::Attribute)
         rule(MATCH_UNPACK, Name::Variable)
+        rule(STANDALONE_CALL, Name::Attribute)
         rule(METHOD_CALL, Name::Attribute)
         
         # To catch everything else
