@@ -67,7 +67,7 @@ module Rouge
       LAZY_DIRECTIVE = /\`.*\n/
       # DEFINE_DIRECTIVE = /\`define #{LOWER_IDENTIFIER} .*\n/  # Manual uses a curly apostrophe, but compiler uses a backtick.
       # Other keywords too; I'm just doing a blanket backtick check.
-      # Also TODO: conditional compilation
+      # Also TODO: conditional compilation (gray out `ifdef CONSTANT and `endif)
 
       # KEYWORD PROCESSING (TODO: not very performant, but it's what I see other lexers (e.g. Ruby, Go) doing)
 
@@ -251,10 +251,6 @@ module Rouge
         rule(%r/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
         rule(%r/case/, Keyword::Reserved, :case)
 
-        # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
-        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
-        rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
-
         # e.g.,
         # import FIFO::*;
         rule %r/(import\s+)(#{UPPER_IDENTIFIER}\s*)(::\s*\*+)/ do |m|  # Limited support for imports like FIFO#; TODO add support for RTL/IP imports
@@ -263,6 +259,9 @@ module Rouge
           token Punctuation, m[3]
         end
 
+        # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
+        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
+        rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
         rule(CONTROL, Keyword)  # TODO: could further split up semantically.
         rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
         rule(SV_KEYWORDS, Keyword::Reserved)  # legacy words from SystemVerilog
