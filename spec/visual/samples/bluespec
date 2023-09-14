@@ -88,7 +88,7 @@ module mkSomeBuffer(SomeBufferInterface);
     (* conflict_free = "tick, check_raw" *)
 
     // etc. other state
-    rule tick;
+    rule tick if (status != Good);
         counter.incr; 
         if (status == Bad && counter.status == Bad) status <= Good;
 
@@ -102,15 +102,17 @@ module mkSomeBuffer(SomeBufferInterface);
             someBool: .someBool
         } = counter.get_some_item;
 
-        // TODO Can we guarantee that `counter.dump` has no side effects?
-        // Here we overestimate and assume it does have side effects.
+        // We assume there are no side effects below.
+        // A creative conditional may have side effects, if permitted by the compiler.
+        // But I suspect it's a rare enough case that we need not worry for almost all,
+        // if not all Bluespec developers.
         if (counter.dump matches tagged Valid .member &&&
             counter.id   matches tagged Valid .id) begin
             $display("This is for conditional matching");
         end
     endrule
 
-    rule check_raw if (raw_counter == !0);
+    rule check_raw(raw_counter == !0);  // Guard may have no `if`.
         $display("Something is wrong");
         $finish;
     endrule
@@ -122,6 +124,8 @@ module mkSomeBuffer(SomeBufferInterface);
         let result = calculate_something(some_input);  // Pure function (no state change)
         raw_counter <= 0;                    // Non-blocking assignment (state change on left)
         let item <- some_removal_action;           // Defining operator (state change on right)
+        // State change on both sides? I don't think it's a common design pattern, nor encouraged
+        // by Bluespec language primitives
 
         // Different types of implied actions.
         counter.decr;               // (method)

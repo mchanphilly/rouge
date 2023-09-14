@@ -187,8 +187,6 @@ module Rouge
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
       OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
 
-      OPERATOR_PHRASE = /(#{OPERATORS})(\s+)(#{UPPER_IDENTIFIER})?/
-
       CALL_NO_ARGUMENTS = /(#{STANDALONE_CALL}|#{METHOD_CALL})/
       CALL_WITH_ARGUMENTS = /#{CALL_NO_ARGUMENTS}\w*(?=\()/
 
@@ -227,12 +225,6 @@ module Rouge
         rule(/<-/, Operator, :actionvalue)
         rule(/=[^=]/, Operator, :assignment)  # Distinguish between = and ==
 
-        rule OPERATOR_PHRASE do |m|
-          token Operator, m[1]
-          token Text::Whitespace, m[2]
-          token Name::Constant, m[3]
-        end
-
         rule(DONT_CARE, Keyword::Pseudo)
       end
 
@@ -265,6 +257,29 @@ module Rouge
         rule %r/(#{LOWER_IDENTIFIER}\s*)(<=)/ do |m|
           token Name::Attribute, m[1]
           token Operator, m[2]
+        end
+
+        # TODO merge with general case
+        # Signal that there's a predicate ahead (either if or rule guard)
+        # e.g.,  rule tick if (PREDICATE)
+        # e.g.,  rule tick(PREDICATE)
+        IF_STATEMENT = /(\bif\s*)(\()/  # No lookahead because we need to enter and exit in pairs.
+        RULE_DECLARATION = /(\brule\s+)(#{LOWER_IDENTIFIER}\s*)/
+        # RULE_PREDICATE_IF = /#{RULE_DECLARATION}(if\s*)(?=\())/ # Covered by the `if` rule.
+        RULE_PREDICATE_NOIF = /#{RULE_DECLARATION}(\()/
+        
+        rule IF_STATEMENT do |m|
+          token Keyword, m[1]
+          token Punctuation, m[2]
+          push :predicate
+        end
+
+        # TODO merge with declarations generally
+        rule RULE_PREDICATE_NOIF do |m|
+          token Keyword::Declaration, m[1]
+          token Name::Function, m[2]
+          token Punctuation, m[3]
+          push :predicate
         end
 
         # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
@@ -416,6 +431,15 @@ module Rouge
       state :assignment do
         rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         rule(/;/, Punctuation, :pop!)
+        mixin :root
+      end
+
+      # TODO remove Enum operator check and instead move it down to here, predicate.
+      state :predicate do
+        rule(/\(/, Punctuation, :predicate)  # Nested predicate
+        rule(/\)/, Punctuation, :pop!)  # Exit
+        rule(UPPER_IDENTIFIER, Name::Constant)
+        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         mixin :root
       end
     end
