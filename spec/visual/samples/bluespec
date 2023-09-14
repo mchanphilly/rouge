@@ -89,16 +89,7 @@ module mkSomeBuffer(SomeBufferInterface);
 
     // etc. other state
     rule tick;
-        // We highlight all submodule methods and obvious Action/ActionValue
-        // There are pros and cons.
-        // - highlight all submodule can help figure combinational paths
-        // - highlight only Action can distinguish between Action and pure functions
         counter.incr; 
-        let some_input = counter.value;  // Pure non-action method
-        do_thing(counter.value);
-        let result = calculate_something(some_input);  // Pure function
-        raw_counter <= 0;
-        
         if (status == Bad && counter.status == Bad) status <= Good;
 
         if (status == Okay) begin
@@ -111,6 +102,8 @@ module mkSomeBuffer(SomeBufferInterface);
             someBool: .someBool
         } = counter.get_some_item;
 
+        // TODO Can we guarantee that `counter.dump` has no side effects?
+        // Here we overestimate and assume it does have side effects.
         if (counter.dump matches tagged Valid .member &&&
             counter.id   matches tagged Valid .id) begin
             $display("This is for conditional matching");
@@ -123,11 +116,18 @@ module mkSomeBuffer(SomeBufferInterface);
     endrule
 
     method ActionValue#(SomeItem) remove_item if (counter.value != 0);
-        let item <- some_removal_action;
-        counter.decr;
-        do_other_thing;  // Implied Action
+        // We highlight all submodule methods and obvious Action/ActionValue
+        
+        let some_input = counter.value;            // Pure value method (no state change)
+        let result = calculate_something(some_input);  // Pure function (no state change)
+        raw_counter <= 0;                    // Non-blocking assignment (state change on left)
+        let item <- some_removal_action;           // Defining operator (state change on right)
 
-        update_status(Good, Bad);
+        // Different types of implied actions.
+        counter.decr;               // (method)
+        do_other_thing;             // (function)
+        do_thing(counter.value);    // (function w/ args)
+        update_status(Good, Bad);   // (w/ enum as args)
 
         case (status)
             Good: $display("Good!"); // No block is okay

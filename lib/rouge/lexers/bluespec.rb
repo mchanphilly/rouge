@@ -258,6 +258,15 @@ module Rouge
           token Punctuation, m[3]
         end
 
+        # TODO merge with general case
+        # If we know a state-changing assignment is coming, then flag the left as an "action";
+        # <= is a non-blocking assignment
+        # This is a small abuse of the semantics, but I'm using the convention of Name::Attribute as a state-changing name.
+        rule %r/(#{LOWER_IDENTIFIER}\s*)(<=)/ do |m|
+          token Name::Attribute, m[1]
+          token Operator, m[2]
+        end
+
         # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
         # Process most other keywords and identifiers TODO absorb above "special" rules into below
         rule %r/(?:#{IDENTIFIER_CHAR}|#)+/ do |m|
