@@ -184,8 +184,6 @@ module Rouge
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
       # Operators
-      ACTIONVALUE_ARROW = /<-/
-
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
       OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
 
@@ -225,8 +223,9 @@ module Rouge
         # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
         rule(/"/, Str::Delimiter, :string)
 
-        # Punctuation
-        rule(ACTIONVALUE_ARROW, Operator, :actionvalue)
+        # Operators
+        rule(/<-/, Operator, :actionvalue)
+        rule(/=[^=]/, Operator, :assignment)  # Distinguish between = and ==
 
         rule OPERATOR_PHRASE do |m|
           token Operator, m[1]
@@ -377,6 +376,7 @@ module Rouge
       #   3. submod.do_thing(Good);  [method call]
       # TODO test against nested parentheses
       state :argument_list do
+        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         rule(UPPER_IDENTIFIER, Name::Constant)
         rule(/\)/, Punctuation, :pop!)  # exit on close parenthesis
         mixin :root
@@ -389,7 +389,10 @@ module Rouge
         
         # : for tagged union matching;
         # = for struct matching 
-        rule(/[:=]/, Punctuation, :pop!)
+        rule %r/[:=]/ do
+          token Operator
+          goto :assignment
+        end
         mixin :root
       end
 
@@ -398,6 +401,12 @@ module Rouge
       state :match_unpack_list do
         rule(MATCH_UNPACK_VARIABLE, Name::Variable)
         rule(/\}/, Punctuation, :pop!)
+        mixin :root
+      end
+
+      state :assignment do
+        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
+        rule(/;/, Punctuation, :pop!)
         mixin :root
       end
     end

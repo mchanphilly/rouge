@@ -18,7 +18,7 @@ Real r5 = 325.761_452_e-10; // underscores are ignored
 Real r6 = 9.2e+4;
 
 // String literals
-String easy_string = "abcd"
+String easy_string = "abcd";
 String string_with_escapes = "a\nb\nc";
 // String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
 
@@ -94,7 +94,7 @@ module mkSomeBuffer(SomeBufferInterface);
         // - highlight all submodule can help figure combinational paths
         // - highlight only Action can distinguish between Action and pure functions
         counter.incr; 
-        let some_input = counter.value;
+        let some_input = counter.value;  // Pure non-action method
         do_thing(counter.value);
         let result = calculate_something(some_input);  // Pure function
         raw_counter <= 0;
