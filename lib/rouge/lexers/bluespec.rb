@@ -16,14 +16,6 @@ module Rouge
       # This is also a rather lazy implementation for most rules. We will correctly lex most
       # correct Bluespec, but we won't catch some technically improper BSV, like calls that 
       # look like system calls (e.g., $finish) but with improper keywords (e.g., $gibberish)
-
-      # IDENTIFIERS
-      IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
-      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*/
-      UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
-      LOWER_IDENTIFIER = /\b[[:lower:]]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
-      SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
-      HIDDEN_IDENTIFIER = /_#{IDENTIFIER_TAIL}/  # TODO unused
       
       # INTEGER LITERALS
       DEC_DIGITS = /[0-9]+/  # { 0...9 } in BNF
@@ -70,13 +62,22 @@ module Rouge
       # Other keywords too; I'm just doing a blanket backtick check.
       # Also TODO: conditional compilation (gray out `ifdef CONSTANT and `endif)
 
-      # KEYWORD PROCESSING (TODO: not very performant, but it's what I see other lexers (e.g. Ruby, Go) doing)
-
       # COMMENTS AND WHITESPACE
       # TODO: highlight TODO, NOTE, or other keywords of note inside of comments.
       LINE_COMMENT = /\/\/(?:(?!\n).)*/
       COMMENT = /#{LINE_COMMENT}/
       WHITE_SPACE = /\s+/
+
+      # IDENTIFIERS
+      IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*/
+
+      # # is necessary for things like Bit#(5)
+      UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
+      # Leading _ is necessary for hidden instances; [DEC_DIGITS] is necessary for e.g. valids[5] <= True
+      LOWER_IDENTIFIER = /\b[[:lower:]_]#{IDENTIFIER_TAIL}(?:\[#{DEC_DIGITS}\])?/  # (identifier) variables, modules, interfaces
+      SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
+      HIDDEN_IDENTIFIER = /_#{IDENTIFIER_TAIL}/  # TODO unused
 
       def self.generic_declarations
         @generic_declarations ||= Set.new(%w(

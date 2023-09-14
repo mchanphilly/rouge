@@ -59,8 +59,9 @@ endinterface
 module mkSomeBuffer(SomeBufferInterface);
     Counter counter <- mkCounter;  // doesn't necessarily need to be named counter
     Reg#(Bit#(5)) raw_counter <- mkReg(0);
-    Reg#(Bit#(8)) r <- mkReg(?); // don’t-care value; usually we would use mkRegU instead
+    Reg#(Bit#(8)) r <- mkReg(?);  // don’t-care value; usually we would use mkRegU instead
     Reg#(Status) status <- mkReg(Good);
+    Vector#(5, Bool) truths <- replicateM(mkReg(False));  // No highlighting for interior ActionValue
     
     function Action do_thing(Bit#(32) thing_input);
         action
@@ -94,6 +95,7 @@ module mkSomeBuffer(SomeBufferInterface);
 
         if (status == Okay) begin
             status <= Good;
+            truths[2] <= True;  // We can assign to indexed registers too.
         end
 
         // For unpacking structs
@@ -112,7 +114,7 @@ module mkSomeBuffer(SomeBufferInterface);
         end
     endrule
 
-    rule check_raw(raw_counter == !0);  // Guard may have no `if`.
+    rule check_raw(raw_counter == ~0);  // Guard may have no `if`.
         $display("Something is wrong");
         $finish;
     endrule
