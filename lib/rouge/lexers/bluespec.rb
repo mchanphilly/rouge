@@ -243,6 +243,12 @@ module Rouge
         rule(/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
         rule(/\bcase\b/, Keyword::Reserved, :case)
         rule(/\bmatch\b/, Keyword::Reserved, :match_unpack)
+        rule %r/(matches\s+)(tagged\s+)(#{UPPER_IDENTIFIER}\s+)(\.#{LOWER_IDENTIFIER})/ do |m|
+          token Keyword::Reserved, m[1]
+          token Keyword::Declaration, m[2]
+          token Name::Class, m[3]
+          token Name::Variable, m[4]
+        end
 
         # e.g.,
         # import FIFO::*;
