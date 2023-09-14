@@ -348,9 +348,11 @@ module Rouge
       #       endcase
       state :case do
         rule(CASE_ENUM, Name::Constant)
-        # rule(MATCH_UNPACK_VARIABLE, Name::Variable)
+        # Note that tagged unpacking can come in two flavors: bracketed and unbracketed.
+        #            tagged SubUnion1 {some_member: .sm, item: .i} :
+        #            tagged SubUnion3 .v : $display(v); 
         rule(/\btagged\b/, Keyword::Declaration, :match_unpack)
-        rule(/endcase/, Keyword::Reserved, :pop!)
+        rule(/endcase/, Keyword, :pop!)
         mixin :root
       end
 
@@ -380,7 +382,20 @@ module Rouge
         mixin :root
       end
 
+      # Corresponds to `tagged SubUnion .v :``
       state :match_unpack do
+        rule(MATCH_UNPACK_VARIABLE, Name::Variable)
+        rule(/\{/, Punctuation, :match_unpack_list)
+        
+        # : for tagged union matching;
+        # = for struct matching 
+        rule(/[:=]/, Punctuation, :pop!)
+        mixin :root
+      end
+
+      # TODO Won't be robust with nested brackets.
+      # Corresponds to bracketed match unpack `tagged SubUnion {some_member: .sm} :`
+      state :match_unpack_list do
         rule(MATCH_UNPACK_VARIABLE, Name::Variable)
         rule(/\}/, Punctuation, :pop!)
         mixin :root

@@ -89,8 +89,14 @@ module mkSomeBuffer(SomeBufferInterface);
 
     // etc. other state
     rule tick;
-        counter.incr;
+        // We highlight all submodule methods and obvious Action/ActionValue
+        // There are pros and cons.
+        // - highlight all submodule can help figure combinational paths
+        // - highlight only Action can distinguish between Action and pure functions
+        counter.incr; 
+        let some_input = counter.value;
         do_thing(counter.value);
+        let result = calculate_something(some_input);  // Pure function
         raw_counter <= 0;
         
         if (status == Bad && counter.status == Bad) status <= Good;
