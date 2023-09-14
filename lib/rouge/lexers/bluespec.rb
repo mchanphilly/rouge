@@ -18,9 +18,10 @@ module Rouge
       # look like system calls (e.g., $finish) but with improper keywords (e.g., $gibberish)
 
       # IDENTIFIERS
-      IDENTIFIER_TAIL = /[A-Za-z0-9$_]*/
-      UPPER_IDENTIFIER = /[A-Z]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
-      LOWER_IDENTIFIER = /[a-z]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
+      IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*/
+      UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
+      LOWER_IDENTIFIER = /\b[[:lower:]]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
       HIDDEN_IDENTIFIER = /_#{IDENTIFIER_TAIL}/  # TODO unused
       
@@ -85,8 +86,6 @@ module Rouge
         ))
       end
 
-      GENERIC_DECLARATIONS = /\b(?:#{generic_declarations.join('|')})\b/
-      
       # TODO make this actually more regular instead of ad hoc
       # declared interface, module, function, method, rule names
       # I split the declarations into two types:
@@ -95,7 +94,11 @@ module Rouge
       # both mixin the :root to cover up the rest of the rules
       # After writing out each of the rules, I realized you can combine the rules because
       # we can just pop after the first identifier.
-      SPECIAL_DECLARATIONS = /(module|rule|function|method)/
+      def self.special_declarations
+        @special_declarations ||= Set.new(%w(
+          module rule function method
+        ))
+      end
       # Pretty plausible that there are more declarations to add; but these cover a very solid portion of my usage.
 
       # KEYWORDS
@@ -104,13 +107,6 @@ module Rouge
           case endcase type else for if return while
         ))
       end
-      CONTROL = /\b(?:#{control.join('|')})\b/
-      # The rule should probably look more like this, but I'm not sure how to do it, and nobody else seems to do it.
-      # rule /\w+/ do |m|
-      #   if (self.class.control.include?(m[0]))
-      #     token Keyword::Declaration
-      #   end
-      # end
       
       def self.reserved
         @reserved ||= Set.new(%w(
@@ -121,18 +117,17 @@ module Rouge
           schedule valueOf valueof void
         ))
       end
-      RESERVED = /\b(?:#{reserved.join('|')})\b/
 
       def self.default_types  # Notice 
         @default_types ||= Set.new([
-          "ActionValue#",  # The ordering is significant. We don't want to just capture the Action.
+          "ActionValue#",  # The ordering is significant. We don't want to just capture the Action. (or we could use word boundaries)
           "Action",
           "bit",
           "let"
         ])
       end
-      DEFAULT_TYPES = /(?:#{default_types.join('|')})/
 
+      # TODO use
       def self.special_keywords
         @special_keywords ||= Set.new(%w(
           BVI
@@ -142,7 +137,7 @@ module Rouge
           SB
           SBR
         ))
-      end  # TODO use
+      end
 
       def self.sv_keywords # SystemVerilog keywords for backwards compatibility. Overlaps with other sets.
         @sv_keywords ||= Set.new(%w(
@@ -172,9 +167,7 @@ module Rouge
           wand weak0 weak1 while wildcard wire with within wor xnor xor
       ))
       end
-      SV_KEYWORDS = /\b(?:#{sv_keywords.join('|')})\b/  # *really* not performant TODO
-
-      PUNCTUATION = /(?:[.,;#\(\)\{\}\[\]]|begin|end)/  # '#' should really go with types TODO
+      PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/  # '#' should really go with types TODO
 
       # Things that follow .  (method calls and match unpacking)
       # e.g., match Status {someIndex: .someIndex} = counter.get_status;
@@ -243,8 +236,6 @@ module Rouge
       end
 
       state :root do
-        rule(DEFAULT_TYPES, Keyword)
-
         mixin :simple_tokens  # Mostly keywords
 
         # Declarations
@@ -260,11 +251,32 @@ module Rouge
         end
 
         # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
-        rule(SPECIAL_DECLARATIONS, Keyword::Declaration, :declared) # module, rule, interface, function, etc.
-        rule(GENERIC_DECLARATIONS, Keyword::Declaration) # endmodule, everything that's left, etc.,
-        rule(CONTROL, Keyword)  # TODO: could further split up semantically.
-        rule(RESERVED, Keyword::Reserved)  # TODO: could further split up semantically.
-        rule(SV_KEYWORDS, Keyword::Reserved)  # legacy words from SystemVerilog
+        # Process most other keywords and identifiers TODO absorb above "special" rules into below
+        rule %r/(?:#{IDENTIFIER_CHAR}|#)+/ do |m|
+          if self.class.default_types.include?(m[0])
+            token Keyword
+          elsif self.class.special_declarations.include?(m[0])
+            # module, rule, interface, function, etc.
+            token Keyword::Declaration
+            push :declared
+          elsif self.class.generic_declarations.include?(m[0])
+            # endmodule, everything that's left, etc.,
+            token Keyword::Declaration
+          elsif self.class.control.include?(m[0])
+            token Keyword
+          elsif self.class.reserved.include?(m[0]) || self.class.sv_keywords.include?(m[0])
+            # TODO: could further split up semantically.    # legacy words from SystemVerilog
+            token Keyword::Reserved
+          else  # Not in the above keywords? Must be custom.
+            if m[0] =~ LOWER_IDENTIFIER
+              token Name::Variable
+            elsif m[0] =~ UPPER_IDENTIFIER
+              token Name::Class
+            else
+              token Error
+            end
+          end
+        end
 
         # Custom 
         rule(MATCH_UNPACK, Name::Variable)
