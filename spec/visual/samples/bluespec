@@ -19,7 +19,7 @@ Real r6 = 9.2e+4;
 
 // String literals
 String easy_string = "abcd"
-String string_with_escapes = "a\nb\nc"; // TODO: Recognize escaped characters separately.
+String string_with_escapes = "a\nb\nc";
 // String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
 
 typedef Bit#(32) Word;
@@ -34,6 +34,15 @@ typedef struct {
     Bit#(5) someIndex;
     Bool someBool;
 } SomeItem deriving (Bits, Eq, FShow);
+
+// TODO define tagged union (I haven't used them yet)
+
+// TODO conditional compilation rendering (and similar directives)
+`ifdef SOME_CONDITION
+module mkConditionalModule(ConditionalModule);
+    method Action do_something;
+endmodule
+`endif
 
 `define example_macro Reg#(Bit#(8))
 
@@ -61,7 +70,9 @@ module mkSomeBuffer(SomeBufferInterface);
     endfunction
 
     function Action update_status(Status new_status, Status another_enum);
+        action  // Looks silly, but I think the compiler demands it.
             noAction;  // toy example; looking for when we use this.
+        endaction
     endfunction
 
     function Action do_other_thing;
@@ -86,11 +97,12 @@ module mkSomeBuffer(SomeBufferInterface);
 
         // For unpacking structs
         match Status {
-            someIndex: .someIndex,  // TODO the `.someIndex` should render like variables, not calls.
+            someIndex: .someIndex,
             someBool: .someBool
         } = counter.get_some_item;
 
-        if (counter.dump matches tagged Valid .member &&& counter.id matches tagged Valid .id) begin
+        if (counter.dump matches tagged Valid .member &&&
+            counter.id   matches tagged Valid .id) begin
             $display("This is for conditional matching");
         end
     endrule
@@ -105,12 +117,11 @@ module mkSomeBuffer(SomeBufferInterface);
         counter.decr;
         do_other_thing;
 
-        // (enum instances as arguments should render like enums, not interface names)
-        update_status(Good, Bad);  // TODO Not fully implemented
+        update_status(Good, Bad);
 
         case (status)
-            Good: $display("Good!");
-            Okay: begin
+            Good: $display("Good!"); // No block is okay
+            Okay: begin  // begin/end block is okay
                 $display("Okay");
             end
             Bad: $finish;
@@ -119,4 +130,5 @@ module mkSomeBuffer(SomeBufferInterface);
         return item;
     endmethod
     // etc. other methods/rules
+    // TODO check other whitespace conventions work (no whitespace? a lot of it?)
 endmodule

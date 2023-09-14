@@ -167,14 +167,10 @@ module Rouge
           wand weak0 weak1 while wildcard wire with within wor xnor xor
       ))
       end
-      PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/  # '#' should really go with types TODO
 
-      # Things that follow .  (method calls and match unpacking)
-      # e.g., match Status {someIndex: .someIndex} = counter.get_status;
-      #                                ^^^^^^^^^^
-      MATCH_UNPACK= /\s\.#{LOWER_IDENTIFIER}/
+
       # TODO check if whitespace actually breaks method calls; if not, then we need to find a different rule. 
-      METHOD_CALL = /\.#{LOWER_IDENTIFIER}/
+      METHOD_CALL = /\.#{LOWER_IDENTIFIER}/ # TODO make more robust; ideally it should follow a LOWER_IDENTIFIER
       
       # An action function can stand alone.
       # We need to match the following:
@@ -182,15 +178,20 @@ module Rouge
       #   - do_thing(blah, blah, blah);
       # This regex checks that we have a newline, whitespace, and an identifier. We lookahead to check for ( or ;
       STANDALONE_CALL = /(?m)^\n\s*#{LOWER_IDENTIFIER}(?=[\(;])/
-      
 
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
       # Operators
       ACTIONVALUE_ARROW = /<-/
+
+      PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
       OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
+
       OPERATOR_PHRASE = /(#{OPERATORS})(\s+)(#{UPPER_IDENTIFIER})?/
+
+      CALL_NO_ARGUMENTS = /(#{STANDALONE_CALL}|#{METHOD_CALL})/
+      CALL_WITH_ARGUMENTS = /#{CALL_NO_ARGUMENTS}\w*(?=\()/
 
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
@@ -207,6 +208,7 @@ module Rouge
 
       # rule structure based on the go.rb lexer. It seemed very clean.
 
+      # TODO combine similar rules that produce the same tokens
       state :simple_tokens do
         # Comment-like things
         rule(COMMENT, Comment)
@@ -230,7 +232,6 @@ module Rouge
           token Text::Whitespace, m[2]
           token Name::Constant, m[3]
         end
-        rule(OPERATORS, Operator);  # TODO combine with above; leftover operators
 
         rule(DONT_CARE, Keyword::Pseudo)
       end
@@ -238,9 +239,10 @@ module Rouge
       state :root do
         mixin :simple_tokens  # Mostly keywords
 
-        # Declarations
-        rule(%r/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
-        rule(%r/case/, Keyword::Reserved, :case)
+        # Special keyword cases (TODO merge with general case)
+        rule(/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
+        rule(/\bcase\b/, Keyword::Reserved, :case)
+        rule(/\bmatch\b/, Keyword::Reserved, :match_unpack)
 
         # e.g.,
         # import FIFO::*;
@@ -278,10 +280,9 @@ module Rouge
           end
         end
 
-        # Custom 
-        rule(MATCH_UNPACK, Name::Variable)
-        rule(STANDALONE_CALL, Name::Attribute)
-        rule(METHOD_CALL, Name::Attribute)
+        # Custom         
+        rule(CALL_WITH_ARGUMENTS, Name::Attribute, :argument_list)
+        rule(CALL_NO_ARGUMENTS, Name::Attribute)
         
         # To catch everything else
         rule(LOWER_IDENTIFIER, Name::Variable)
@@ -289,13 +290,18 @@ module Rouge
         mixin :whitespace
 
         # For last because I don't want it overriding the special rules.
+        rule(OPERATORS, Operator);  # TODO combine with above; leftover operators
+
         rule(PUNCTUATION, Punctuation)
       end
 
       # e.g., Reg#(Bit#(2)) <- mkReg(0)
       #                        ^^^^^
       state :actionvalue do
-        rule(/ #{LOWER_IDENTIFIER}/, Name::Attribute, :pop!)
+        rule(/ #{LOWER_IDENTIFIER}(?=\s*\()/, Name::Attribute, :argument_list)  # enter open parenthesis
+        rule(/ #{LOWER_IDENTIFIER}/, Name::Attribute)  # no arguments
+        # TODO see if there's a better way to combine the two rules above  
+        rule(/;/, Punctuation, :pop!) # exit on statement end ; 
         mixin :root
       end
 
@@ -346,12 +352,30 @@ module Rouge
       # } Status deriving (Bits, Eq, FShow);
       state :enum_declaration do
         rule(UPPER_IDENTIFIER, Name::Constant)
-        rule(%r/}/, Punctuation, :pop!)
+        rule(/\}/, Punctuation, :pop!)
         mixin :root
       end
 
       state :whitespace do
         rule(WHITE_SPACE, Text::Whitespace)
+      end
+
+      # TODO merge rules/states:
+      #   1. raw_counter <- mkReg(Good);  [actionvalue]
+      #   2. do_thing(Good);  [standalone call]
+      #   3. submod.do_thing(Good);  [method call]
+      # TODO test against nested parentheses
+      state :argument_list do
+        rule(UPPER_IDENTIFIER, Name::Constant)
+        rule(/\)/, Punctuation, :pop!)  # exit on close parenthesis
+        mixin :root
+      end
+
+      MATCH_UNPACK_VARIABLE = /\.#{LOWER_IDENTIFIER}/
+      state :match_unpack do
+        rule(MATCH_UNPACK_VARIABLE, Name::Variable)
+        rule(/\}/, Punctuation, :pop!)
+        mixin :root
       end
     end
   end
