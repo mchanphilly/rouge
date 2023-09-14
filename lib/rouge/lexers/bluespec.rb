@@ -168,9 +168,10 @@ module Rouge
       ))
       end
 
-
+      # TODO make these two rules ... not identical
       # TODO check if whitespace actually breaks method calls; if not, then we need to find a different rule. 
       METHOD_CALL = /\.#{LOWER_IDENTIFIER}/ # TODO make more robust; ideally it should follow a LOWER_IDENTIFIER
+      MATCH_UNPACK_VARIABLE = /\.#{LOWER_IDENTIFIER}/
       
       # An action function can stand alone.
       # We need to match the following:
@@ -347,6 +348,8 @@ module Rouge
       #       endcase
       state :case do
         rule(CASE_ENUM, Name::Constant)
+        # rule(MATCH_UNPACK_VARIABLE, Name::Variable)
+        rule(/\btagged\b/, Keyword::Declaration, :match_unpack)
         rule(/endcase/, Keyword::Reserved, :pop!)
         mixin :root
       end
@@ -377,7 +380,6 @@ module Rouge
         mixin :root
       end
 
-      MATCH_UNPACK_VARIABLE = /\.#{LOWER_IDENTIFIER}/
       state :match_unpack do
         rule(MATCH_UNPACK_VARIABLE, Name::Variable)
         rule(/\}/, Punctuation, :pop!)

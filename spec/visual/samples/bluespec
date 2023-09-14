@@ -35,7 +35,11 @@ typedef struct {
     Bool someBool;
 } SomeItem deriving (Bits, Eq, FShow);
 
-// TODO define tagged union (I haven't used them yet)
+typedef union tagged {
+    struct {Bit#(2) some_member; SomeItem item;} SubUnion1;
+    struct {Bit#(4) some_other_member;} SubUnion2;
+    Bit#(4) SubUnion3;
+} SomeUnion;
 
 // TODO conditional compilation rendering (and similar directives)
 `ifdef SOME_CONDITION
@@ -115,7 +119,7 @@ module mkSomeBuffer(SomeBufferInterface);
     method ActionValue#(SomeItem) remove_item if (counter.value != 0);
         let item <- some_removal_action;
         counter.decr;
-        do_other_thing;
+        do_other_thing;  // Implied Action
 
         update_status(Good, Bad);
 
@@ -125,6 +129,21 @@ module mkSomeBuffer(SomeBufferInterface);
                 $display("Okay");
             end
             Bad: $finish;
+        endcase
+
+        let some_union = tagged SubUnion3 'b1010;  // alias of Bit#(4) in this example 
+        // TODO figure out syntax for instantiating a tagged union
+        // with multiple members (I haven't yet seen)
+        case (some_union) matches
+            tagged SubUnion1 {some_member: .sm, item: .i} :
+                begin
+                    let combo = do_combination(sm, i);  // not Action
+                    $display(combo);
+                    counter.check(combo);
+                end 
+            tagged SubUnion2 {some_other_member: .some} :
+                $display(some);
+            tagged SubUnion3 .v : $display(v); 
         endcase
 
         return item;
