@@ -174,7 +174,7 @@ module Rouge
       end
       SV_KEYWORDS = /\b(?:#{sv_keywords.join('|')})\b/  # *really* not performant TODO
 
-      PUNCTUATION = /(?:[.,;#]|begin|end)/  # '#' should really go with types TODO
+      PUNCTUATION = /(?:[.,;#\(\)\{\}\[\]]|begin|end)/  # '#' should really go with types TODO
 
       # Things that follow .  (method calls and match unpacking)
       # e.g., match Status {someIndex: .someIndex} = counter.get_status;
@@ -195,8 +195,8 @@ module Rouge
 
       # Operators
       ACTIONVALUE_ARROW = /<-/
-      OPERATORS = /[\:=\+\-\!~&|\/%<>\(\)\{\}\[\]]+/  # TODO change to actual operators and not lazy
-
+      OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
+      OPERATOR_PHRASE = /(#{OPERATORS})(\s+)(#{UPPER_IDENTIFIER})?/
 
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
@@ -230,7 +230,13 @@ module Rouge
 
         # Punctuation
         rule(ACTIONVALUE_ARROW, Operator, :actionvalue)
-        rule(OPERATORS, Operator)
+
+        rule OPERATOR_PHRASE do |m|
+          token Operator, m[1]
+          token Text::Whitespace, m[2]
+          token Name::Constant, m[3]
+        end
+        rule(OPERATORS, Operator);  # TODO combine with above; leftover operators
 
         rule(DONT_CARE, Keyword::Pseudo)
       end
@@ -267,7 +273,7 @@ module Rouge
         # To catch everything else
         rule(LOWER_IDENTIFIER, Name::Variable)
         rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
-        rule(WHITE_SPACE, Text::Whitespace)
+        mixin :whitespace
 
         # For last because I don't want it overriding the special rules.
         rule(PUNCTUATION, Punctuation)
@@ -331,6 +337,9 @@ module Rouge
         mixin :root
       end
 
+      state :whitespace do
+        rule(WHITE_SPACE, Text::Whitespace)
+      end
     end
   end
 end
