@@ -204,11 +204,10 @@ module Rouge
       
       # Looking at a snippet of Bluespec, we can see that generally (I don't know about strict
       # adherance to the grammar):
-
-      # Enumeration (members) are (and interfaces aren't):
-      # - in comma separated curly bracket lists {One, Two, Three} when defined
-      # - used with operators; e.g. comparison operator
-      # - in case statements
+      #   Enumeration (members) are (and interfaces aren't):
+      #   - in comma separated curly bracket lists {One, Two, Three} when defined
+      #   - used with operators; e.g. comparison operator
+      #   - in case statements
 
       CASE_ENUM = /#{UPPER_IDENTIFIER}(?=:)/
 
@@ -300,25 +299,38 @@ module Rouge
         rule(/#{STRING_CHARACTER}/, Str)
       end
 
+      # e.g., import FIFO::*;
+      #             ^^^^**
       state :namespace do
         rule(/ #{UPPER_IDENTIFIER}/, Name::Namespace)
         rule(/::/, Punctuation)  # technically redundant if we mixin root
-        rule()
       end
 
       # Slightly overkill, but we can imagine a design pattern where we wish to be strict about what patterns may apply.
       # TODO add support for literal matches instead of just case matches
+      # e.g., case (condition)
+      #            Example: do_something;
+      #            AnotherExample: begin
+      #                do_something_else;
+      #            end
+      #       endcase
       state :case do
         rule(CASE_ENUM, Name::Constant)
         rule(/endcase/, Keyword::Reserved, :pop!)
         mixin :root
       end
 
+      # e.g.,
+      # typedef enum {
+      #     Good,
+      #     Bad 
+      # } Status deriving (Bits, Eq, FShow);
       state :enum_declaration do
         rule(UPPER_IDENTIFIER, Name::Constant)
         rule(%r/}/, Punctuation, :pop!)
         mixin :root
       end
+
     end
   end
 end
