@@ -93,21 +93,13 @@ module mkSomeBuffer(SomeBufferInterface);
         counter.incr; 
         if (status == Bad && counter.status == Bad) status <= Good;
 
-        if (status == Okay) begin
-            status <= Good;
-            truths[2] <= True;  // We can assign to indexed registers too.
-        end
-
         // For unpacking structs
         match Status {
             someIndex: .someIndex,
             someBool: .someBool
         } = counter.get_some_item;
 
-        // We assume there are no side effects below.
-        // A creative conditional may have side effects, if permitted by the compiler.
-        // But I suspect it's a rare enough case that we need not worry for almost all,
-        // if not all Bluespec developers.
+        // We assume there are no side effects in matching expressions.
         if (counter.dump matches tagged Valid .member &&&
             counter.id   matches tagged Valid .id) begin
             $display("This is for conditional matching");
@@ -128,6 +120,7 @@ module mkSomeBuffer(SomeBufferInterface);
         let item <- some_removal_action;           // Defining operator (state change on right)
         // State change on both sides? I don't think it's a common design pattern, nor encouraged
         // by Bluespec language primitives
+        truths[2] <= True;  // We can assign to indexed registers too.
 
         // Different types of implied actions.
         counter.decr;               // (method)
@@ -151,7 +144,7 @@ module mkSomeBuffer(SomeBufferInterface);
                 begin
                     let combo = do_combination(sm, i);  // not Action
                     $display(combo);
-                    counter.check(combo);
+                    counter.check(combo);  // likely state change on counter
                 end 
             tagged SubUnion2 {some_other_member: .some} :
                 $display(some);

@@ -75,7 +75,7 @@ module Rouge
       # # is necessary for things like Bit#(5)
       UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
       # Leading _ is necessary for hidden instances; [DEC_DIGITS] is necessary for e.g. valids[5] <= True
-      LOWER_IDENTIFIER = /\b[[:lower:]_]#{IDENTIFIER_TAIL}(?:\[#{DEC_DIGITS}\])?/  # (identifier) variables, modules, interfaces
+      LOWER_IDENTIFIER = /\b[[:lower:]_]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
       HIDDEN_IDENTIFIER = /_#{IDENTIFIER_TAIL}/  # TODO unused
 
@@ -255,10 +255,9 @@ module Rouge
         # If we know a state-changing assignment is coming, then flag the left as an "action";
         # <= is a non-blocking assignment
         # This is a small abuse of the semantics, but I'm using the convention of Name::Attribute as a state-changing name.
-        rule %r/(#{LOWER_IDENTIFIER}\s*)(<=)/ do |m|
-          token Name::Attribute, m[1]
-          token Operator, m[2]
-        end
+        # supports both register_name <= new_value; and register_name[index] <= new_value
+        ARRAY_INDEX = /\[\s*.+\s*\]/  # two brackets with anything in them.
+        rule(/(#{LOWER_IDENTIFIER}\s*)(?=(#{ARRAY_INDEX}\s*)?<=)/, Name::Attribute)
 
         # TODO merge with general case
         # Signal that there's a predicate ahead (either if or rule guard)
