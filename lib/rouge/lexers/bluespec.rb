@@ -224,7 +224,7 @@ module Rouge
 
         # Operators
         rule(/<-/, Operator, :actionvalue)
-        rule(/=[^=]/, Operator, :assignment)  # Distinguish between = and ==
+        rule(/<?=[^=]/, Operator, :assignment)  # Distinguish between = and ==
 
         rule(DONT_CARE, Keyword::Pseudo)
       end
@@ -429,12 +429,12 @@ module Rouge
       end
 
       state :assignment do
-        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         rule(/;/, Punctuation, :pop!)
+        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
+        rule(/#{UPPER_IDENTIFIER}\s*(?=;)/, Name::Constant) # Very restricted enum instance assignnment
         mixin :root
       end
 
-      # TODO remove Enum operator check and instead move it down to here, predicate.
       state :predicate do
         rule(/\(/, Punctuation, :predicate)  # Nested predicate
         rule(/\)/, Punctuation, :pop!)  # Exit
