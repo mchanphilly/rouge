@@ -179,8 +179,9 @@ module Rouge
       #   - do_thing;
       #   - do_thing(blah, blah, blah);
       # This regex checks that we have a newline, whitespace, and an identifier. We lookahead to check for ( or ;
-      STANDALONE_CALL = /(?m)^\n\s*#{LOWER_IDENTIFIER}(?=[\(;])/
-
+      # STANDALONE_CALL = /(?m)^\n\s*#{LOWER_IDENTIFIER}(?=[\(;])/
+      # CALL_NO_ARGUMENTS = /(#{STANDALONE_CALL}|#{METHOD_CALL})/
+      # CALL_WITH_ARGUMENTS = /#{CALL_NO_ARGUMENTS}\w*(?=\()/
       # Compiler synthesis directives (TODO make not lazy)
       COMPILER_DIRECTIVE = /\(\*.*\*\)/
 
@@ -188,8 +189,7 @@ module Rouge
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
       OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
 
-      CALL_NO_ARGUMENTS = /(#{STANDALONE_CALL}|#{METHOD_CALL})/
-      CALL_WITH_ARGUMENTS = /#{CALL_NO_ARGUMENTS}\w*(?=\()/
+
 
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
@@ -209,9 +209,7 @@ module Rouge
       # TODO combine similar rules that produce the same tokens
       state :simple_tokens do
         # Comment-like things
-        rule(COMMENT, Comment)
-        rule(LAZY_DIRECTIVE, Comment::Preproc)  # `define, but with all `identifier
-        rule(COMPILER_DIRECTIVE, Name::Function::Magic)  # e.g., (* synthesize *)
+        mixin :whitespace
 
         # Keywords
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
@@ -233,7 +231,8 @@ module Rouge
         mixin :simple_tokens  # Mostly keywords
 
         # Special keyword cases (TODO merge with general case)
-        rule(/typedef\s+enum/, Keyword::Declaration, :enum_declaration) # typedef enum
+        rule(/\breturn\b/, Keyword, :assignment)  # Distinguish between = and ==
+        rule(/\btypedef\b/, Keyword::Declaration, :typedef)
         rule(/\bcase\b/, Keyword::Reserved, :case)
         rule(/\bmatch\b/, Keyword::Reserved, :match_unpack)
         rule %r/(matches\s+)(tagged\s+)(#{UPPER_IDENTIFIER}\s+)(\.#{LOWER_IDENTIFIER})/ do |m|
@@ -281,6 +280,23 @@ module Rouge
           push :predicate
         end
 
+        rule %r/#{LOWER_IDENTIFIER}(?=;)/ do
+          if in_state? :assignment
+            token Name::Variable
+          else 
+            token Name::Attribute
+          end
+        end
+
+        rule %r/#{LOWER_IDENTIFIER}(?=\()/ do
+          if in_state? :assignment
+            token Name::Variable
+          else 
+            token Name::Attribute
+          end
+          push :argument_list  # Call with arguments
+        end
+
         # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
         # Process most other keywords and identifiers TODO absorb above "special" rules into below
         rule %r/(?:#{IDENTIFIER_CHAR}|#)+/ do |m|
@@ -310,15 +326,6 @@ module Rouge
             end
           end
         end
-
-        # Custom         
-        rule(CALL_WITH_ARGUMENTS, Name::Attribute, :argument_list)
-        rule(CALL_NO_ARGUMENTS, Name::Attribute)
-        
-        # To catch everything else
-        rule(LOWER_IDENTIFIER, Name::Variable)
-        rule(UPPER_IDENTIFIER, Name::Class)  # Lazy
-        mixin :whitespace
 
         # For last because I don't want it overriding the special rules.
         rule(OPERATORS, Operator);  # TODO combine with above; leftover operators
@@ -381,19 +388,66 @@ module Rouge
         mixin :root
       end
 
+      state :typedef do
+        rule(/;/, Punctuation, :pop!)  # TODO all these exits; make them zero width and only state change
+        rule(/\benum\b/, Keyword::Declaration, :enum)
+        rule(/\bstruct\b/, Keyword::Declaration, :struct)
+        rule(/\bunion tagged\b/, Keyword::Declaration, :union)  # de facto word pair
+        # Mostly just used for semantics
+        mixin :root
+      end
+
+      state :enum do
+        rule(/\{/, Punctuation, :enum_list)
+        rule(UPPER_IDENTIFIER, Name::Class, :pop!)  # Likely name of enum
+        mixin :root
+      end
+
+      state :struct do
+        rule(/\{/, Punctuation, :struct_list)
+        rule(UPPER_IDENTIFIER, Name::Class, :pop!)  # Likely the name of the struct
+        mixin :root
+      end
+     
+      state :union do
+        rule(/\{/, Punctuation, :union_list)
+        rule(UPPER_IDENTIFIER, Name::Class, :pop!)  # Name of the union
+        mixin :root
+      end
+
       # e.g.,
       # typedef enum {
       #     Good,
       #     Bad 
       # } Status deriving (Bits, Eq, FShow);
-      state :enum_declaration do
+      state :enum_list do
         rule(UPPER_IDENTIFIER, Name::Constant)
+        rule(/\}/, Punctuation, :pop!)
+        mixin :root
+      end
+
+      # expect to see a list of statements with `TYPE name;``
+      # We don't need to worry about semantics yet; just heuristic rules
+      state :struct_list do
+        rule(LOWER_IDENTIFIER, Name::Variable)
+        rule(/\}/, Punctuation, :pop!)
+        mixin :root
+      end
+      
+      # Probably overkill number of states; 
+      state :union_list do
+        rule(/\benum\b/, Keyword::Declaration, :enum)
+        rule(/\bstruct\b/, Keyword::Declaration, :struct)
+        rule(/\bunion tagged\b/, Keyword::Declaration, :union)  # nested declaration
         rule(/\}/, Punctuation, :pop!)
         mixin :root
       end
 
       state :whitespace do
         rule(WHITE_SPACE, Text::Whitespace)
+        rule(COMMENT, Comment)
+        rule(LAZY_DIRECTIVE, Comment::Preproc)  # `define, but with all `identifier
+        rule(COMPILER_DIRECTIVE, Name::Function::Magic)  # e.g., (* synthesize *)
       end
 
       # TODO merge rules/states:
@@ -402,7 +456,8 @@ module Rouge
       #   3. submod.do_thing(Good);  [method call]
       # TODO test against nested parentheses
       state :argument_list do
-        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
+        rule(LOWER_IDENTIFIER, Name::Variable)  # We suspect this is not an ActionValue function.
+        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue method.
         rule(UPPER_IDENTIFIER, Name::Constant)
         rule(/\)/, Punctuation, :pop!)  # exit on close parenthesis
         mixin :root
@@ -432,7 +487,6 @@ module Rouge
 
       state :assignment do
         rule(/;/, Punctuation, :pop!)
-        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         rule(/#{UPPER_IDENTIFIER}\s*(?=;)/, Name::Constant) # Very restricted enum instance assignnment
         mixin :root
       end
