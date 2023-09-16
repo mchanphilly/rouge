@@ -191,7 +191,7 @@ module Rouge
 
       # Operators
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
-      OPERATORS = /[\:=\+\-\!~&|\/%<>\^]+/  # TODO change to actual operators and not lazy
+      OPERATORS = /[\:=\+\-\!~&|\/%<>\^\*]+/  # TODO change to actual operators and not lazy
 
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
