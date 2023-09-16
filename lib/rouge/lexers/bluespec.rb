@@ -70,10 +70,10 @@ module Rouge
 
       # IDENTIFIERS
       IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
-      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*\b/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*#?/
 
       # # is necessary for things like Bit#(5)
-      UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
+      UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
       # Leading _ is necessary for hidden instances; [DEC_DIGITS] is necessary for e.g. valids[5] <= True
       LOWER_IDENTIFIER = /\b[[:lower:]_]#{IDENTIFIER_TAIL}/  # (identifier) variables, modules, interfaces
       SYSTEM_IDENTIFIER = /\$#{IDENTIFIER_TAIL}/  # system tasks and functions
@@ -128,7 +128,6 @@ module Rouge
         ])
       end
 
-      # TODO use
       def self.special_keywords
         @special_keywords ||= Set.new(%w(
           BVI
@@ -172,6 +171,7 @@ module Rouge
       # TODO make these two rules ... not identical
       # TODO check if whitespace actually breaks method calls; if not, then we need to find a different rule. 
       METHOD_CALL = /\.#{LOWER_IDENTIFIER}/ # TODO make more robust; ideally it should follow a LOWER_IDENTIFIER
+      # TODO see if we can color the . separately
       MATCH_UNPACK_VARIABLE = /\.#{LOWER_IDENTIFIER}/
       
       # An action function can stand alone.
@@ -263,9 +263,8 @@ module Rouge
         # Signal that there's a predicate ahead (either if or rule guard)
         # e.g.,  rule tick if (PREDICATE)
         # e.g.,  rule tick(PREDICATE)
-        IF_STATEMENT = /(\bif\s*)(\()/  # No lookahead because we need to enter and exit in pairs.
+        IF_STATEMENT = /(\bif\s*)(\()/
         RULE_DECLARATION = /(\brule\s+)(#{LOWER_IDENTIFIER}\s*)/
-        # RULE_PREDICATE_IF = /#{RULE_DECLARATION}(if\s*)(?=\())/ # Covered by the `if` rule.
         RULE_PREDICATE_NOIF = /#{RULE_DECLARATION}(\()/
         
         rule IF_STATEMENT do |m|
@@ -294,6 +293,8 @@ module Rouge
           elsif self.class.generic_declarations.include?(m[0])
             # endmodule, everything that's left, etc.,
             token Keyword::Declaration
+          elsif self.class.special_keywords.include?(m[0])
+            token Operator
           elsif self.class.control.include?(m[0])
             token Keyword
           elsif self.class.reserved.include?(m[0]) || self.class.sv_keywords.include?(m[0])
@@ -329,7 +330,8 @@ module Rouge
       #                        ^^^^^
       state :actionvalue do
         rule(/\(/, Punctuation, :argument_list)
-        # rule(/#{LOWER_IDENTIFIER}\./, Name::Variable)  # Method
+        # TODO fuse the two rules below
+        rule(/#{LOWER_IDENTIFIER}\s*(?=\.)/, Name::Variable)  # Submodule about to have a method.
         rule(/#{LOWER_IDENTIFIER}\s*(?=[^\.])/, Name::Attribute)  # Function
         rule(/;/, Punctuation, :pop!) # exit on statement end ; 
         mixin :root
@@ -340,7 +342,7 @@ module Rouge
       # e.g., method ActionValue#(Bit#(4)) do_thing(Bit#(4) input);
       #                                    ^^^^^^^^
       state :declared do
-        rule(/ #{LOWER_IDENTIFIER}/, Name::Function, :pop!)
+        rule(LOWER_IDENTIFIER, Name::Function, :pop!)
         mixin :root
       end
 
@@ -357,7 +359,7 @@ module Rouge
       # e.g., import FIFO::*;
       #             ^^^^**
       state :namespace do
-        rule(/ #{UPPER_IDENTIFIER}/, Name::Namespace)
+        rule(UPPER_IDENTIFIER, Name::Namespace)
         rule(/::/, Punctuation)  # technically redundant if we mixin root
       end
 

@@ -156,3 +156,16 @@ module mkSomeBuffer(SomeBufferInterface);
     // etc. other methods/rules
     // TODO check other whitespace conventions work (no whitespace? a lot of it?)
 endmodule
+
+// RTL import
+import "BVI" ASSIGN1 =
+module packReset#(Reset rst)(OutputBit);
+   default_clock no_clock;
+   default_reset no_reset;
+
+   input_reset rst(IN) = rst;
+
+   method OUT out reset_by(rst);
+
+   schedule (out) CF (out);
+endmodule
