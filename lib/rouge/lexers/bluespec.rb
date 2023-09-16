@@ -574,7 +574,7 @@ module Rouge
       state :predicate do
         rule(/\(/, Punctuation, :predicate)  # Nested predicate
         rule(/\)/, Punctuation, :pop!)  # Exit
-        rule(/=/, Operator)  # Short-circuit; this is for for loops
+        rule(OPERATORS, Operator);  # Short circuit operators
         rule(UPPER_IDENTIFIER, Name::Constant)
         mixin :root
       end
