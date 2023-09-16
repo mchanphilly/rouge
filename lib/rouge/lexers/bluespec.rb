@@ -359,6 +359,17 @@ module Rouge
       # return value before looking for the identifier
       state :declared do  # It must either end (no args) or have a ( (yes args) or guard
         rule(/#{LOWER_IDENTIFIER}(?=\s*(?:[;\(]|if))/, Name::Function, :pop!)
+
+        # VERY special rule for short-circuit method declarations; e.g., method remove = f.deq;
+        # But we need to assume that there's an action happening on the right;
+        # or at least we can't assume they're pure functions. If someone is using this
+        # notation, then they probably know what they're doing.
+        rule %r/(#{LOWER_IDENTIFIER})(\s*)(=)/ do |m|
+          token Name::Function, m[1]
+          token Text::Whitespace, m[2]
+          token Operator, m[3]
+          pop!
+        end
         mixin :root
       end
 

@@ -196,3 +196,10 @@ function SbLookup getLookupIfc(Vector#(NumPhyReg, Bool) sbVec);
         method RegsReady get(PhyRegs r) = unpack(0);
     endinterface);
 endfunction
+
+// Implied return values
+module mkPipelineScoreboard(Scoreboard#(size,t)) provisos (Bits#(t,tSz), Eq#(t));
+  SFifo#(size, Maybe#(t), Maybe#(t)) f <- mkPipelineSFifo(isFound);
+  
+  method insert = f.enq;
+endmodule
