@@ -257,6 +257,7 @@ module Rouge
         # supports both register_name <= new_value; and register_name[index] <= new_value
         ARRAY_INDEX = /\[\s*.+\s*\]/  # two brackets with anything in them.
         rule(/(#{LOWER_IDENTIFIER}\s*)(?=(#{ARRAY_INDEX}\s*)?<=)/, Name::Attribute)
+        rule(/\[/, Punctuation, :index)
 
         # TODO merge with general case
         # Signal that there's a predicate ahead (either if or rule guard)
@@ -281,7 +282,7 @@ module Rouge
         end
 
         rule %r/#{LOWER_IDENTIFIER}(?=;)/ do
-          if in_state? :assignment
+          if (in_state?(:assignment) or (in_state?(:index)))
             token Name::Variable
           else 
             token Name::Attribute
@@ -289,7 +290,7 @@ module Rouge
         end
 
         rule %r/#{LOWER_IDENTIFIER}(?=\()/ do
-          if in_state? :assignment
+          if (in_state?(:assignment) or (in_state?(:index)))
             token Name::Variable
           else 
             token Name::Attribute
@@ -496,6 +497,11 @@ module Rouge
         rule(/\)/, Punctuation, :pop!)  # Exit
         rule(UPPER_IDENTIFIER, Name::Constant)
         rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
+        mixin :root
+      end
+
+      state :index do
+        rule(/\]/, Punctuation, :pop!)
         mixin :root
       end
     end

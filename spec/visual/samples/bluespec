@@ -157,6 +157,9 @@ module mkSomeBuffer(SomeBufferInterface);
     // TODO check other whitespace conventions work (no whitespace? a lot of it?)
 endmodule
 
+// Advanced features: snippets from the open-source RiscyOO/Toooba 
+// https://github.com/bluespec/Toooba/blob/master/src_Core/RISCY_OOO/procs/lib/Scoreboard.bsv
+
 // RTL import
 import "BVI" ASSIGN1 =
 module packReset#(Reset rst)(OutputBit);
@@ -169,3 +172,17 @@ module packReset#(Reset rst)(OutputBit);
 
    schedule (out) CF (out);
 endmodule
+
+// Nested and parametric interfaces (TODO)
+interface InorderRenamingScoreboard#(
+    numeric type setReadyNum, numeric type lookupNum
+);
+    interface Vector#(lookupNum, SbLookup) lookup; // together with RF read
+    interface Vector#(SupSize, SbSetBusy) setBusy; // at rename
+    interface Vector#(setReadyNum, Put#(PhyRIndx)) setReady; // exe finishes
+endinterface
+
+// Several consecutive indexes with functional or method accesses (TODO)
+sb[valid_dst.indx][setBusy_port(i)][those.and_that(these)] <= True;
+something <= compare(arr[24]);
+state <= arr[20];
