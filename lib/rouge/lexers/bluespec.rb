@@ -70,7 +70,7 @@ module Rouge
 
       # IDENTIFIERS
       IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
-      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*#?/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*\s*#?/
 
       # # is necessary for things like Bit#(5)
       UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
@@ -83,7 +83,7 @@ module Rouge
         @generic_declarations ||= Set.new(%w(
           function instance interface method module package rule rules typeclass
           typedef struct tagged union enum endfunction endinstance endinterface
-          endmethod endmodule endpackage endrule endrules endtypeclass
+          endmethod endmodule endpackage endrule endrules endtypeclass deriving
         ))
       end
 
@@ -168,6 +168,10 @@ module Rouge
       ))
       end
 
+      def self.all_keywords
+        @all_keywords ||= self.generic_declarations | self.special_declarations | self.control | self.special_keywords | self.sv_keywords
+      end
+
       # TODO make these two rules ... not identical
       # TODO check if whitespace actually breaks method calls; if not, then we need to find a different rule. 
       METHOD_CALL = /\.#{LOWER_IDENTIFIER}/ # TODO make more robust; ideally it should follow a LOWER_IDENTIFIER
@@ -187,7 +191,7 @@ module Rouge
 
       # Operators
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
-      OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
+      OPERATORS = /[\:=\+\-\!~&|\/%<>\^]+/  # TODO change to actual operators and not lazy
 
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
@@ -284,17 +288,50 @@ module Rouge
           push :predicate
         end
 
-        rule %r/#{LOWER_IDENTIFIER}(?=;)/ do
-          if (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
+        # TODO patch these interactions for keywords
+        rule %r/#{LOWER_IDENTIFIER}(?=;)/ do |m|
+          if self.class.default_types.include?(m[0])
+            token Keyword
+          elsif self.class.special_declarations.include?(m[0])
+            # module, rule, interface, function, etc.
+            token Keyword::Declaration
+            push :declared
+          elsif self.class.generic_declarations.include?(m[0])
+            # endmodule, everything that's left, etc.,
+            token Keyword::Declaration
+          elsif self.class.special_keywords.include?(m[0])
+            token Operator
+          elsif self.class.control.include?(m[0])
+            token Keyword
+          elsif self.class.reserved.include?(m[0]) || self.class.sv_keywords.include?(m[0])
+            # TODO: could further split up semantically.    # legacy words from SystemVerilog
+            token Keyword::Reserved
+          elsif (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
             token Name::Variable
           else 
             token Name::Attribute
           end
         end
 
-        rule %r/#{LOWER_IDENTIFIER}(?=\()/ do
-        if (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
-          token Name::Variable
+        rule %r/#{LOWER_IDENTIFIER}(?=\()/ do |m|
+          if self.class.default_types.include?(m[0])
+            token Keyword
+          elsif self.class.special_declarations.include?(m[0])
+            # module, rule, interface, function, etc.
+            token Keyword::Declaration
+            push :declared
+          elsif self.class.generic_declarations.include?(m[0])
+            # endmodule, everything that's left, etc.,
+            token Keyword::Declaration
+          elsif self.class.special_keywords.include?(m[0])
+            token Operator
+          elsif self.class.control.include?(m[0])
+            token Keyword
+          elsif self.class.reserved.include?(m[0]) || self.class.sv_keywords.include?(m[0])
+            # TODO: could further split up semantically.    # legacy words from SystemVerilog
+            token Keyword::Reserved
+          elsif (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
+            token Name::Variable
           else 
             token Name::Attribute
           end
@@ -303,7 +340,7 @@ module Rouge
 
         # Be aware that while some of these are bracket-like (interface/endinterface), they may also standalone (e.g. subinterface)
         # Process most other keywords and identifiers TODO absorb above "special" rules into below
-        rule %r/(?:#{IDENTIFIER_CHAR}|#)+/ do |m|
+        rule %r/(?:#{IDENTIFIER_CHAR}|\s*#)+/ do |m|
           if self.class.default_types.include?(m[0])
             token Keyword
           elsif self.class.special_declarations.include?(m[0])
