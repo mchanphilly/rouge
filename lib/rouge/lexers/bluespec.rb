@@ -265,13 +265,14 @@ module Rouge
         # Signal that there's a predicate ahead (either if or rule guard)
         # e.g.,  rule tick if (PREDICATE)
         # e.g.,  rule tick(PREDICATE)
-        IF_STATEMENT = /(\bif\s*)(\()/
+        IFFOR_STATEMENT = /\b(?:(if|for))(\s*)(\()/
         RULE_DECLARATION = /(\brule\s+)(#{LOWER_IDENTIFIER}\s*)/
         RULE_PREDICATE_NOIF = /#{RULE_DECLARATION}(\()/
         
-        rule IF_STATEMENT do |m|
+        rule IFFOR_STATEMENT do |m|
           token Keyword, m[1]
-          token Punctuation, m[2]
+          token Text::Whitespace, m[2]
+          token Punctuation, m[3]
           push :predicate
         end
 
@@ -284,7 +285,7 @@ module Rouge
         end
 
         rule %r/#{LOWER_IDENTIFIER}(?=;)/ do
-          if (in_state?(:assignment) or (in_state?(:index)))
+          if (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
             token Name::Variable
           else 
             token Name::Attribute
@@ -292,8 +293,8 @@ module Rouge
         end
 
         rule %r/#{LOWER_IDENTIFIER}(?=\()/ do
-          if (in_state?(:assignment) or (in_state?(:index)))
-            token Name::Variable
+        if (in_state?(:assignment) or (in_state?(:index)) or (in_state?(:predicate)))
+          token Name::Variable
           else 
             token Name::Attribute
           end
@@ -503,8 +504,8 @@ module Rouge
       state :predicate do
         rule(/\(/, Punctuation, :predicate)  # Nested predicate
         rule(/\)/, Punctuation, :pop!)  # Exit
+        rule(/=/, Operator)  # Short-circuit; this is for for loops
         rule(UPPER_IDENTIFIER, Name::Constant)
-        rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue.
         mixin :root
       end
 
