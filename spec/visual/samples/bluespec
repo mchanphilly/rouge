@@ -112,8 +112,7 @@ module mkSomeBuffer(SomeBufferInterface);
     endrule
 
     method ActionValue#(SomeItem) remove_item if (counter.value != 0);
-        // We highlight all submodule methods and obvious Action/ActionValue
-        
+        // We highlight based on whether there's a state change involved.
         let some_input = counter.value;            // Pure value method (no state change)
         let result = calculate_something(some_input);  // Pure function (no state change)
         raw_counter <= 0;                    // Non-blocking assignment (state change on left)
@@ -121,6 +120,7 @@ module mkSomeBuffer(SomeBufferInterface);
         // State change on both sides? I don't think it's a common design pattern, nor encouraged
         // by Bluespec language primitives
         truths[2] <= True;  // We can assign to indexed registers too.
+        let some_output <- counter.some_actionvalue;  // We can do ActionValue methods
 
         // Different types of implied actions.
         counter.decr;               // (method)

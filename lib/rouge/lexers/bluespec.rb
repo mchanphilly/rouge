@@ -70,7 +70,7 @@ module Rouge
 
       # IDENTIFIERS
       IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
-      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*\b/
 
       # # is necessary for things like Bit#(5)
       UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}#?/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
@@ -328,9 +328,9 @@ module Rouge
       # e.g., Reg#(Bit#(2)) <- mkReg(0)
       #                        ^^^^^
       state :actionvalue do
-        rule(/ #{LOWER_IDENTIFIER}(?=\s*\()/, Name::Attribute, :argument_list)  # enter open parenthesis
-        rule(/ #{LOWER_IDENTIFIER}/, Name::Attribute)  # no arguments
-        # TODO see if there's a better way to combine the two rules above  
+        rule(/\(/, Punctuation, :argument_list)
+        # rule(/#{LOWER_IDENTIFIER}\./, Name::Variable)  # Method
+        rule(/#{LOWER_IDENTIFIER}\s*(?=[^\.])/, Name::Attribute)  # Function
         rule(/;/, Punctuation, :pop!) # exit on statement end ; 
         mixin :root
       end
