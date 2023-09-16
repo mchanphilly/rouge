@@ -187,19 +187,24 @@ sb[valid_dst.indx][setBusy_port(i)][those.and_that(these)] <= True;
 something <= compare(arr[24]);
 state <= arr[20];
 
-// Returning interface
+// Returning modules
 function SbLookup getLookupIfc(Vector#(NumPhyReg, Bool) sbVec);
     for(Integer i = 0; i < valueof(setReadyNum); i = i+1) begin  // for loop
-        if(True) noAction;  // Weirdly spaced if
+        if(True) noAction;
     end
     return (interface SbLookup;
         method RegsReady get(PhyRegs r) = unpack(0);
+        method Action remove(Maybe#(PhyDst) r);
+            sb.remove;  // This is an Action. (TODO support nested definition)
+        endmethod
     endinterface);
 endfunction
 
-// Implied return values
+// Implied return values (TODO)
 module mkPipelineScoreboard(Scoreboard#(size,t)) provisos (Bits#(t,tSz), Eq#(t));
     SFifo#(size, Maybe#(t), Maybe#(t)) f <- mkPipelineSFifo(isFound);
     interface lookup = map(getLookupIfc, genVector);  // implied return interface
     method insert = f.enq;  // implied return method
+    function Integer lookup_port = valueof(setReadyNum); // TODO lexer assumes state change 
 endmodule
+
