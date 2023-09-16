@@ -207,6 +207,12 @@ module Rouge
       CASE_ENUM = /#{UPPER_IDENTIFIER}(?=:)/
 
       # rule structure based on the go.rb lexer. It seemed very clean.
+      state :literals do
+        rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
+        rule(INT_LITERAL, Num::Integer)
+        # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
+        rule(/"/, Str::Delimiter, :string)
+      end
 
       # TODO combine similar rules that produce the same tokens
       state :simple_tokens do
@@ -214,13 +220,17 @@ module Rouge
         mixin :whitespace
 
         # Keywords
+        # System task with arguments
+        rule %r/(#{SYSTEM_IDENTIFIER})(\s*\()/ do |m|
+          token Name::Builtin, m[1]
+          token Punctuation, m[2]
+          push :argument_list  # e.g., $display, $format TODO check the word
+        end
+        # System task without arguments
         rule(SYSTEM_IDENTIFIER, Name::Builtin)  # e.g., $display, $format TODO check the word
         
         # Literals
-        rule(REAL_LITERAL, Num)  # No more specific token available (has to be before)
-        rule(INT_LITERAL, Num::Integer)
-        # rule(ESCAPED_CHAR, Str::Escape)  # TODO (not implemented; need to play nicely with the string literal rule)
-        rule(/"/, Str::Delimiter, :string)
+        mixin :literals
 
         # Operators
         rule(/<-/, Operator, :actionvalue)
@@ -262,7 +272,13 @@ module Rouge
         # This is a small abuse of the semantics, but I'm using the convention of Name::Attribute as a state-changing name.
         # supports both register_name <= new_value; and register_name[index] <= new_value
         ARRAY_INDEX = /\[\s*.+\s*\]/  # two brackets with anything in them.
-        rule(/(#{LOWER_IDENTIFIER}\s*)(?=(#{ARRAY_INDEX}\s*)?<=)/, Name::Attribute)
+        rule(/(#{LOWER_IDENTIFIER}\s*)(?=(#{ARRAY_INDEX}\s*)?<=)/) do |m|
+          if (in_state?(:predicate))  # Means we're in a comparison, with <= as leq, not assignment
+            token Name::Variable
+          else
+            token Name::Attribute
+          end
+        end
         rule(/\[/, Punctuation, :index)
 
         # TODO merge with general case
@@ -288,6 +304,7 @@ module Rouge
           push :predicate
         end
 
+        # The engine that distinguishes whether something is an Action
         # TODO patch these interactions for keywords
         rule %r/#{LOWER_IDENTIFIER}(?=;)/ do |m|
           if self.class.default_types.include?(m[0])
@@ -514,9 +531,14 @@ module Rouge
       #   3. submod.do_thing(Good);  [method call]
       # TODO test against nested parentheses
       state :argument_list do
+        rule %r/(#{LOWER_IDENTIFIER})(\s*\()/ do |m|
+          token Name::Variable, m[1]
+          token Punctuation, m[2]
+          push :argument_list
+        end
         rule(LOWER_IDENTIFIER, Name::Variable)  # We suspect this is not an ActionValue function.
         rule(METHOD_CALL, Name::Variable)  # We suspect this is not an ActionValue method.
-        rule(UPPER_IDENTIFIER, Name::Constant)
+        rule(/#{UPPER_IDENTIFIER}(?!\s*\.)/, Name::Constant)
         rule(/\)/, Punctuation, :pop!)  # exit on close parenthesis
         mixin :root
       end
