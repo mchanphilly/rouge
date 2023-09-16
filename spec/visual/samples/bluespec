@@ -157,10 +157,10 @@ module mkSomeBuffer(SomeBufferInterface);
     // TODO check other whitespace conventions work (no whitespace? a lot of it?)
 endmodule
 
-// Advanced features: snippets from the open-source RiscyOO/Toooba 
+// Advanced features: highly modified (synthetic) snippets from the open-source RiscyOO/Toooba 
 // https://github.com/bluespec/Toooba/blob/master/src_Core/RISCY_OOO/procs/lib/Scoreboard.bsv
 
-// RTL import
+// RTL import  (TODO might be a little iffy token-wise. It's a very different format from normal BSV)
 import "BVI" ASSIGN1 =
 module packReset#(Reset rst)(OutputBit);
    default_clock no_clock;
@@ -175,11 +175,11 @@ endmodule
 
 // Nested and parametric interfaces
 interface InorderRenamingScoreboard#(
-    numeric type setReadyNum, numeric type lookupNum
+    numeric type setReadyNum, type t
 );
-    interface Vector#(lookupNum, SbLookup) lookup; // together with RF read
     interface Vector#(SupSize, SbSetBusy) setBusy; // at rename
-    interface Vector#(setReadyNum, Put#(PhyRIndx)) setReady; // exe finishes
+    interface Vector#(setReadyNum, Put#(PhyRIndx)) setReady;
+    method Bit#(TLog#(TAdd#(size, 1))) search1(Maybe#(t) r);
 endinterface
 
 // Several consecutive indexes with functional or method accesses
@@ -189,6 +189,9 @@ state <= arr[20];
 
 // Returning interface
 function SbLookup getLookupIfc(Vector#(NumPhyReg, Bool) sbVec);
+    for(Integer i = 0; i < valueof(setReadyNum); i = i+1) begin  // for loop
+        if(True) noAction;  // Weirdly spaced if
+    end
     return (interface SbLookup;
         method RegsReady get(PhyRegs r) = unpack(0);
     endinterface);

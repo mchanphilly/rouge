@@ -351,8 +351,13 @@ module Rouge
       #              ^^^^^^^^^
       # e.g., method ActionValue#(Bit#(4)) do_thing(Bit#(4) input);
       #                                    ^^^^^^^^
-      state :declared do
-        rule(LOWER_IDENTIFIER, Name::Function, :pop!)
+      # but also be careful with red herrings, e.g.,
+      #     method Bit#(TLog#(TAdd#(size, 1))) search1(Maybe#(t) r);
+      #                             ^NO^       ^ YES ^   
+      # TODO ideally this should all be refactored so we recognize the 
+      # return value before looking for the identifier
+      state :declared do  # It must either end (no args) or have a ( (yes args) or guard
+        rule(/#{LOWER_IDENTIFIER}(?=\s*(?:[;\(]|if))/, Name::Function, :pop!)
         mixin :root
       end
 
