@@ -41,7 +41,7 @@ typedef union tagged {
     Bit#(4) SubUnion3;
 } SomeUnion;
 
-// TODO conditional compilation rendering (and similar directives)
+// conditional compilation rendering (and similar directives)
 `ifdef SOME_CONDITION
 module mkConditionalModule(ConditionalModule);
     method Action do_something;
@@ -173,7 +173,7 @@ module packReset#(Reset rst)(OutputBit);
    schedule (out) CF (out);
 endmodule
 
-// Nested and parametric interfaces (TODO)
+// Nested and parametric interfaces
 interface InorderRenamingScoreboard#(
     numeric type setReadyNum, numeric type lookupNum
 );
@@ -182,7 +182,14 @@ interface InorderRenamingScoreboard#(
     interface Vector#(setReadyNum, Put#(PhyRIndx)) setReady; // exe finishes
 endinterface
 
-// Several consecutive indexes with functional or method accesses (TODO)
+// Several consecutive indexes with functional or method accesses
 sb[valid_dst.indx][setBusy_port(i)][those.and_that(these)] <= True;
 something <= compare(arr[24]);
 state <= arr[20];
+
+// Returning interface
+function SbLookup getLookupIfc(Vector#(NumPhyReg, Bool) sbVec);
+    return (interface SbLookup;
+        method RegsReady get(PhyRegs r) = unpack(0);
+    endinterface);
+endfunction

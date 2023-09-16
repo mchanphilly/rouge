@@ -189,8 +189,6 @@ module Rouge
       PUNCTUATION = /(?:[.,;\(\)\{\}\[\]]|begin|end)/
       OPERATORS = /[\:=\+\-\!~&|\/%<>]+/  # TODO change to actual operators and not lazy
 
-
-
       # ENUM
       # Because enums and interfaces both use UPPER_IDENTIFIER, it can be difficult to distinguish
       # them in lexing. We need to be more discerning in the rules we use.
@@ -233,6 +231,10 @@ module Rouge
         # Special keyword cases (TODO merge with general case)
         rule(/\breturn\b/, Keyword, :assignment)  # Distinguish between = and ==
         rule(/\btypedef\b/, Keyword::Declaration, :typedef)
+        rule %r/\binterface\b/ do
+          token Keyword::Declaration
+          push :interface unless state? :interface
+        end
         rule(/\bcase\b/, Keyword::Reserved, :case)
         rule(/\bmatch\b/, Keyword::Reserved, :match_unpack)
         rule %r/(matches\s+)(tagged\s+)(#{UPPER_IDENTIFIER}\s+)(\.#{LOWER_IDENTIFIER})/ do |m|
@@ -447,6 +449,7 @@ module Rouge
       state :whitespace do
         rule(WHITE_SPACE, Text::Whitespace)
         rule(COMMENT, Comment)
+        rule(/`ifdef.*?`endif/m, Comment)  # Assume not def
         rule(LAZY_DIRECTIVE, Comment::Preproc)  # `define, but with all `identifier
         rule(COMPILER_DIRECTIVE, Name::Function::Magic)  # e.g., (* synthesize *)
       end
@@ -502,6 +505,14 @@ module Rouge
 
       state :index do
         rule(/\]/, Punctuation, :pop!)
+        mixin :root
+      end
+
+      state :interface do
+        # Heuristically only interfaces and methods are members of interface.
+        rule(/\bendinterface\b/, Keyword::Declaration, :pop!)  # top interface exit with endinterface
+        rule(/#{LOWER_IDENTIFIER}\s*;/, Name::Function)
+        # rule(/;/, Punctuation, :pop!)  # subinterface exit with ;
         mixin :root
       end
     end
