@@ -273,7 +273,7 @@ module Rouge
         # supports both register_name <= new_value; and register_name[index] <= new_value
         ARRAY_INDEX = /\[\s*.+\s*\]/  # two brackets with anything in them.
         rule(/(#{LOWER_IDENTIFIER}\s*)(?=(#{ARRAY_INDEX}\s*)?<=)/) do |m|
-          if (in_state?(:predicate))  # Means we're in a comparison, with <= as leq, not assignment
+          if (in_state?(:predicate) or in_state?(:index))  # Means we're in a comparison, with <= as leq, not assignment
             token Name::Variable
           else
             token Name::Attribute
@@ -306,7 +306,7 @@ module Rouge
 
         # The engine that distinguishes whether something is an Action
         # TODO patch these interactions for keywords
-        rule %r/#{LOWER_IDENTIFIER}(?=;)/ do |m|
+        rule %r/#{LOWER_IDENTIFIER}(?=\s*;)/ do |m|
           if self.class.default_types.include?(m[0])
             token Keyword
           elsif self.class.special_declarations.include?(m[0])

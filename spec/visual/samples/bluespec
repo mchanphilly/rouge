@@ -183,7 +183,7 @@ interface InorderRenamingScoreboard#(
 endinterface
 
 // Several consecutive indexes with functional or method accesses
-sb[valid_dst.indx][setBusy_port(i)][those.and_that(these)] <= True;
+sb[valid_dst.indx][setBusy_port(i)][those.and_that(these[nested(42)])] <= True;
 something <= compare(arr[24]);
 state <= arr[20];
 
