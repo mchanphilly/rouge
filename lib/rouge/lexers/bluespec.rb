@@ -330,7 +330,7 @@ module Rouge
           end
         end
 
-        rule %r/#{LOWER_IDENTIFIER}(?=\s*\()/ do |m|
+        rule %r/#{LOWER_IDENTIFIER}(?=\s*\(\s*[^\*])/ do |m|
           if self.class.default_types.include?(m[0])
             token Keyword
           elsif self.class.special_declarations.include?(m[0])
