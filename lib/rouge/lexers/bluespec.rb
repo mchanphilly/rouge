@@ -70,7 +70,7 @@ module Rouge
 
       # IDENTIFIERS
       IDENTIFIER_CHAR = /[A-Za-z0-9$_]/
-      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*(\s*#)?/
+      IDENTIFIER_TAIL = /#{IDENTIFIER_CHAR}*(?:\s*#)?/
 
       # # is necessary for things like Bit#(5)
       UPPER_IDENTIFIER = /\b[[:upper:]]#{IDENTIFIER_TAIL}/  # (Identifier) package names, type names, enumeration labels, union members, and type classes
