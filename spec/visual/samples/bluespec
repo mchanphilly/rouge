@@ -199,7 +199,7 @@ endfunction
 
 // Implied return values
 module mkPipelineScoreboard(Scoreboard#(size,t)) provisos (Bits#(t,tSz), Eq#(t));
-  SFifo#(size, Maybe#(t), Maybe#(t)) f <- mkPipelineSFifo(isFound);
-  
-  method insert = f.enq;
+    SFifo#(size, Maybe#(t), Maybe#(t)) f <- mkPipelineSFifo(isFound);
+    interface lookup = map(getLookupIfc, genVector);  // implied return interface
+    method insert = f.enq;  // implied return method
 endmodule

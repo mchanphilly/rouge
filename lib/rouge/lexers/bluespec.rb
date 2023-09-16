@@ -97,7 +97,7 @@ module Rouge
       # we can just pop after the first identifier.
       def self.special_declarations
         @special_declarations ||= Set.new(%w(
-          module rule function method
+          module rule function method interface # interface only in event of subinterface assignment
         ))
       end
       # Pretty plausible that there are more declarations to add; but these cover a very solid portion of my usage.
@@ -231,7 +231,7 @@ module Rouge
         # Special keyword cases (TODO merge with general case)
         rule(/\breturn\b/, Keyword, :assignment)  # Distinguish between = and ==
         rule(/\btypedef\b/, Keyword::Declaration, :typedef)
-        rule %r/\binterface\b/ do
+        rule %r/\binterface\b(?!\s*#{LOWER_IDENTIFIER}\s*=)/ do
           token Keyword::Declaration
           push :interface unless state? :interface
         end
