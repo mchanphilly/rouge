@@ -567,6 +567,7 @@ module Rouge
 
       state :assignment do
         rule(/;/, Punctuation, :pop!)
+        rule(OPERATORS, Operator);  # Short circuit operators (especially <=)
         rule(/#{UPPER_IDENTIFIER}\s*(?=;)/, Name::Constant) # Very restricted enum instance assignnment
         mixin :root
       end

@@ -182,11 +182,6 @@ interface InorderRenamingScoreboard#(
     method Bit#(TLog#(TAdd#(size, 1))) search1(Maybe#(t) r);
 endinterface
 
-// Several consecutive indexes with functional or method accesses
-sb[valid_dst.indx][setBusy_port(i)][those.and_that(these[nested(42)])] <= True;
-something <= compare(arr[24]);
-state <= arr[20];
-
 // Returning modules
 function SbLookup getLookupIfc(Vector#(NumPhyReg, Bool) sbVec);
     for(Integer i = 0; i < valueof(setReadyNum); i = i+1) begin  // for loop
@@ -205,6 +200,11 @@ module mkPipelineScoreboard(Scoreboard#(size,t)) provisos (Bits#(t,tSz), Eq#(t))
     SFifo#(size, Maybe#(t), Maybe#(t)) f <- mkPipelineSFifo(isFound);
     interface lookup = map(getLookupIfc, genVector);  // implied return interface
     method insert = f.enq;  // implied return method
-    function Integer lookup_port = valueof(setReadyNum); // TODO lexer assumes state change 
+    function Integer lookup_port = get_something(setReadyNum); // TODO lexer assumes state change
+
+    // Several consecutive indexes with functional or method accesses
+    sb[valid_dst.indx][setBusy_port(i)][those.and_that(these[nested(42)])] <= True;
+    something <= compare(arr[24]);
+    state <= arr[20];
 endmodule
 
