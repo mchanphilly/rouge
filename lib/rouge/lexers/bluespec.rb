@@ -519,6 +519,7 @@ module Rouge
 
       state :whitespace do
         rule(WHITE_SPACE, Text::Whitespace)
+        rule(/\/\*.*\*\//m, Comment::Multiline)
         rule(COMMENT, Comment)
         rule(/`ifdef.*?`endif/m, Comment)  # Assume not def
         rule(LAZY_DIRECTIVE, Comment::Preproc)  # `define, but with all `identifier

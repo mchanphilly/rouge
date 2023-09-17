@@ -22,6 +22,11 @@ String easy_string = "abcd";
 String string_with_escapes = "a\nb\nc";
 // String octal_string = ??? (Manual is unclear what it means by \OOO or \xHH)
 
+/*
+block comments
+work fine
+*/
+
 typedef Bit#(32) Word;
 
 typedef enum {
